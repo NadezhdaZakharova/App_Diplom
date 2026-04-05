@@ -1,0 +1,215 @@
+package com.example.diplom.ui
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.example.diplom.ui.components.AccessibleTextButton
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.diplom.domain.model.AppUserMode
+import com.example.diplom.ui.screens.RewardsAndStatsScreen
+import com.example.diplom.ui.screens.TrainingScreen
+import com.example.diplom.ui.screens.WorkoutSessionScreen
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DiplomApp(viewModel: MainViewModel = viewModel()) {
+    val uiState by viewModel.uiState.collectAsState()
+    val nav by viewModel.appNavigation.collectAsState()
+
+    val visibleDestinations = remember(uiState.userMode) {
+        buildList {
+            add(AppDestinations.TRAINING)
+            if (uiState.userMode == AppUserMode.STUDENT) add(AppDestinations.REWARDS)
+        }
+    }
+
+    LaunchedEffect(uiState.userMode) {
+        viewModel.syncMainDestinationWithUserMode(uiState.userMode)
+    }
+
+    when {
+        nav.showModePicker && !nav.sessionActive -> ModeSelectionScreen(
+            onTrainer = {
+                viewModel.setUserMode(AppUserMode.TRAINER)
+                viewModel.dismissModePicker()
+            },
+            onStudent = {
+                viewModel.setUserMode(AppUserMode.STUDENT)
+                viewModel.dismissModePicker()
+            }
+        )
+        nav.sessionActive -> Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+            WorkoutSessionScreen(
+                sessionInstanceId = nav.sessionInstanceId,
+                title = nav.sessionTitle,
+                items = nav.sessionItems,
+                modifier = Modifier.padding(innerPadding),
+                onFinish = { viewModel.endWorkoutSession() },
+                onWorkoutCompleted = { completed ->
+                    if (uiState.userMode == AppUserMode.STUDENT) {
+                        viewModel.recordStudentWorkoutCompletion(completed, nav.sessionFromTrainer)
+                    }
+                }
+            )
+        }
+        else -> MainScaffold(
+            uiState = uiState,
+            nav = nav,
+            visibleDestinations = visibleDestinations,
+            viewModel = viewModel
+        )
+    }
+}
+
+@Composable
+private fun ModeSelectionScreen(
+    onTrainer: () -> Unit,
+    onStudent: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = UiStrings.PICK_MODE_TITLE,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.semantics {
+                heading()
+                contentDescription = UiStrings.PICK_MODE_HEADING_A11Y
+            }
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = onStudent,
+            modifier = Modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 48.dp)
+                .semantics { contentDescription = UiStrings.SELECT_STUDENT_A11Y }
+        ) { Text(UiStrings.ROLE_STUDENT) }
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(
+            onClick = onTrainer,
+            modifier = Modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 48.dp)
+                .semantics { contentDescription = UiStrings.SELECT_TRAINER_A11Y }
+        ) { Text(UiStrings.ROLE_TRAINER) }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MainScaffold(
+    uiState: MainUiState,
+    nav: DiplomAppNavigationState,
+    visibleDestinations: List<AppDestinations>,
+    viewModel: MainViewModel
+) {
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = uiState.userMode.topBarTitle(),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 2
+                        )
+                        AccessibleTextButton(
+                            onClick = { viewModel.setUserMode(uiState.userMode.toggle()) },
+                            contentDescription = UiStrings.switchModeToA11y(
+                                uiState.userMode.toggle().roleLabel()
+                            )
+                        ) {
+                            Text(
+                                UiStrings.SWITCH_MODE,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                    }
+                }
+            )
+        }
+    ) { scaffoldPadding ->
+        NavigationSuiteScaffold(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(scaffoldPadding),
+            navigationSuiteItems = {
+                visibleDestinations.forEach { dest ->
+                    item(
+                        icon = {
+                            Icon(
+                                dest.icon,
+                                contentDescription = dest.contentDescription
+                            )
+                        },
+                        label = { Text(dest.label) },
+                        selected = dest == nav.currentDestination,
+                        onClick = { viewModel.setMainDestination(dest) }
+                    )
+                }
+            }
+        ) {
+            when (nav.currentDestination) {
+                AppDestinations.TRAINING -> TrainingScreen(
+                    state = uiState,
+                    modifier = Modifier.fillMaxSize(),
+                    onAddExercise = viewModel::addExercise,
+                    onAddToWorkout = viewModel::addToWorkout,
+                    onAddToTrainerWorkout = viewModel::addToTrainerWorkout,
+                    onRemoveWorkoutItem = viewModel::removeWorkoutItem,
+                    onImportTrainerWorkout = viewModel::importTrainerWorkout,
+                    onExportTrainerWorkout = viewModel::exportTrainerWorkout,
+                    onStartSelfWorkout = {
+                        viewModel.startSelfWorkoutSession(uiState.selfWorkout)
+                    },
+                    onStartTrainerWorkout = {
+                        viewModel.startTrainerWorkoutSession(uiState.trainerWorkout)
+                    }
+                )
+                AppDestinations.REWARDS -> RewardsAndStatsScreen(
+                    state = uiState,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+    }
+}
