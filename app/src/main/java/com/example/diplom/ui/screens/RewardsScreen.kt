@@ -5,42 +5,26 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.diplom.domain.model.StudentRewardsStats
 import com.example.diplom.ui.MainUiState
-import com.example.diplom.ui.theme.DarkBackground
-import com.example.diplom.ui.theme.DarkSurface
-import com.example.diplom.ui.theme.GreenPrimary
-import com.example.diplom.ui.theme.OrangeAccent
-import com.example.diplom.ui.theme.TextPrimaryDark
 
 @Composable
 fun RewardsAndStatsScreen(state: MainUiState, modifier: Modifier = Modifier) {
+
     val totalSteps = state.recentDays.sumOf { it.steps }
     val totalKm = state.recentDays.sumOf { it.distanceKm }
     val r = state.studentRewards
@@ -53,28 +37,42 @@ fun RewardsAndStatsScreen(state: MainUiState, modifier: Modifier = Modifier) {
     val progressAnim by animateFloatAsState(
         targetValue = monthProgress,
         animationSpec = tween(800),
-        label = "monthProgress"
+        label = "progress"
     )
 
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
 
-        // 🔥 Заголовок + уровень
+        // 🔥 HEADER
         item {
-            Text(
-                "Достижения",
-                color = TextPrimaryDark,
-                fontWeight = FontWeight.Bold,
-                fontSize = 22.sp
-            )
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
 
-            Spacer(Modifier.height(6.dp))
+                    Text(
+                        "🔥 Твой прогресс",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
 
+                    Spacer(Modifier.height(8.dp))
+
+                    Text(
+                        "Ты на пути к лучшей форме 💪",
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
+                    )
+                }
+            }
         }
 
         // 🏆 достижения
@@ -88,24 +86,67 @@ fun RewardsAndStatsScreen(state: MainUiState, modifier: Modifier = Modifier) {
 
         // 📊 активность
         item {
-            SectionHeader("Активность", Icons.Default.FitnessCenter)
-            Text("Шагов: $totalSteps", color = TextPrimaryDark)
-            Text("Дистанция: ${"%.2f".format(totalKm)} км", color = TextPrimaryDark)
+            Text(
+                "📊 Активность",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Text(
+                "Шагов: $totalSteps",
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Text(
+                "Дистанция: ${"%.2f".format(totalKm)} км",
+                color = MaterialTheme.colorScheme.onBackground
+            )
         }
 
+        // 📅 дни
         items(state.recentDays) { day ->
+
+            val progress = (day.steps / 10000f).coerceIn(0f, 1f)
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                border = BorderStroke(0.5.dp, Color(0xFF1E2A38))
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                border = BorderStroke(
+                    0.5.dp,
+                    MaterialTheme.colorScheme.outline
+                )
             ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(day.dateIso, color = TextPrimaryDark)
-                    Text("${day.steps} шагов", color = GreenPrimary)
+                Column(modifier = Modifier.padding(14.dp)) {
+
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            day.dateIso,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            "${day.steps} шагов",
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    Spacer(Modifier.height(6.dp))
+
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(6.dp)),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
                 }
             }
         }
@@ -116,13 +157,19 @@ fun RewardsAndStatsScreen(state: MainUiState, modifier: Modifier = Modifier) {
 private fun AchievementCard(content: @Composable () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        border = BorderStroke(0.5.dp, Color(0xFF1E2A38))
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(
+            0.5.dp,
+            MaterialTheme.colorScheme.outline
+        ),
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             content()
         }
@@ -131,113 +178,138 @@ private fun AchievementCard(content: @Composable () -> Unit) {
 
 @Composable
 private fun WeekTopExerciseContent(r: StudentRewardsStats) {
-    Text(
-        if (r.weekTopExerciseCount > 0 && r.weekTopExerciseTitle != null) {
-            "Упражнение недели — ${r.weekTopExerciseTitle}"
-        } else {
-            "Упражнение недели — пока нет данных; завершите тренировки на этой неделе"
-        },
-        fontWeight = FontWeight.Medium
-    )
-    if (r.weekTopExerciseCount > 0) {
-        Text("Сколько раз за неделю: ${r.weekTopExerciseCount}")
+    Text("🏆 Упражнение недели", fontWeight = FontWeight.Bold)
+
+    if (r.weekTopExerciseCount > 0 && r.weekTopExerciseTitle != null) {
+        Text("${r.weekTopExerciseTitle}")
+        Text("Повторений: ${r.weekTopExerciseCount}")
+    } else {
+        Text("Пока нет данных — начни тренироваться 💪")
     }
 }
 
 @Composable
 private fun WeeklyMarathonContent(r: StudentRewardsStats) {
+    Text("🔥 Недельный марафон", fontWeight = FontWeight.Bold)
+
     Text(
         if (r.weeklyMarathonComplete) {
-            "Недельный марафон — вы тренировались каждый день недели (пн–вс)"
+            "Ты тренировалась каждый день недели 🎉"
         } else {
-            "Недельный марафон — тренируйтесь каждый день недели (пн–вс). Сейчас: ${r.workoutDaysThisWeek} из 7 дней"
-        },
-        fontWeight = FontWeight.Medium
+            "Дни тренировок: ${r.workoutDaysThisWeek} / 7"
+        }
     )
 }
 
 @Composable
 private fun MonthlyWorkoutsContent(r: StudentRewardsStats, progress: Float) {
+
     val color by animateColorAsState(
-        targetValue = if (progress > 0.7f) GreenPrimary else OrangeAccent,
-        label = "progressColor"
+        targetValue = if (progress > 0.7f)
+            MaterialTheme.colorScheme.primary
+        else
+            MaterialTheme.colorScheme.secondary,
+        label = "color"
     )
 
-    Text("Тренировки в этом месяце", fontWeight = FontWeight.Bold, color = TextPrimaryDark)
+    Text("📅 Тренировки в месяце", fontWeight = FontWeight.Bold)
 
-    Text(
-        "${r.workoutSessionsThisMonth} из ${r.daysInMonth}",
-        color = color,
-        fontWeight = FontWeight.SemiBold
-    )
+    Text("${r.workoutSessionsThisMonth} / ${r.daysInMonth}")
 
     LinearProgressIndicator(
         progress = { progress },
         modifier = Modifier
             .fillMaxWidth()
-            .height(8.dp)
-            .clip(RoundedCornerShape(8.dp)),
+            .height(10.dp)
+            .clip(RoundedCornerShape(10.dp)),
         color = color,
-        trackColor = Color(0xFF1E2A38)
+        trackColor = MaterialTheme.colorScheme.surfaceVariant
     )
 }
+
 @Composable
 private fun StreakContent(r: StudentRewardsStats) {
-    Text("Серия дней с тренировками", fontWeight = FontWeight.Bold)
-    Text("Текущая серия: ${r.currentStreakDays} дн.")
+    Text("🔥 Серия тренировок", fontWeight = FontWeight.Bold)
+
+    Text("Текущая серия: ${r.currentStreakDays} дней")
+
     Text(
-        streakThresholdsLine(r),
+        buildString {
+            append("Пороги: ")
+
+            append(if (r.streakUnlocked3) "✅" else "⬜")
+            append(" 3  ")
+
+            append(if (r.streakUnlocked7) "✅" else "⬜")
+            append(" 7  ")
+
+            append(if (r.streakUnlocked14) "✅" else "⬜")
+            append(" 14  ")
+
+            append(if (r.streakUnlocked30) "✅" else "⬜")
+            append(" 30")
+        },
         style = MaterialTheme.typography.bodySmall
     )
 }
 
-private fun streakThresholdsLine(r: StudentRewardsStats): String = buildString {
-    append("Пороги: ")
-    append(if (r.streakUnlocked3) "✓" else "○")
-    append(" 3 дн.  ")
-    append(if (r.streakUnlocked7) "✓" else "○")
-    append(" 7 дн.  ")
-    append(if (r.streakUnlocked14) "✓" else "○")
-    append(" 14 дн.  ")
-    append(if (r.streakUnlocked30) "✓" else "○")
-    append(" 30 дн.")
-}
-
 @Composable
 private fun FirstWeekContent(r: StudentRewardsStats) {
-    Text("Первая неделя", fontWeight = FontWeight.Bold)
+    Text("🚀 Первая неделя", fontWeight = FontWeight.Bold)
+
     Text(
-        "Завершите не меньше ${r.firstWeekTarget} тренировок в первые 7 дней после установки приложения."
+        "Сделай минимум ${r.firstWeekTarget} тренировок за первые 7 дней"
     )
-    Text("Сейчас: ${r.firstWeekWorkoutsCount} / ${r.firstWeekTarget}")
+
     Text(
-        if (r.firstWeekComplete) "Цель достигнута" else "Продолжайте тренироваться",
-        fontWeight = FontWeight.Medium
+        "Прогресс: ${r.firstWeekWorkoutsCount} / ${r.firstWeekTarget}"
+    )
+
+    Text(
+        if (r.firstWeekComplete) "Цель достигнута 🎉"
+        else "Продолжай 💪",
+        color = if (r.firstWeekComplete)
+            MaterialTheme.colorScheme.primary
+        else
+            MaterialTheme.colorScheme.onSurface
     )
 }
 
 @Composable
 private fun VarietyContent(r: StudentRewardsStats) {
-    Text("Разнообразие", fontWeight = FontWeight.Bold)
+    Text("🎯 Разнообразие", fontWeight = FontWeight.Bold)
+
     Text(
-        "За текущую неделю выполните упражнения из не меньше ${r.varietyTarget} разных позиций банка."
+        "Сделай ${r.varietyTarget} разных упражнений за неделю"
     )
-    Text("Разных упражнений на неделе: ${r.varietyDistinctExercises} / ${r.varietyTarget}")
+
     Text(
-        if (r.varietyComplete) "Цель достигнута" else "Добавьте разные упражнения в тренировки",
-        fontWeight = FontWeight.Medium
+        "Прогресс: ${r.varietyDistinctExercises} / ${r.varietyTarget}"
+    )
+
+    Text(
+        if (r.varietyComplete) "Выполнено ✅"
+        else "Добавь новые упражнения",
+        color = if (r.varietyComplete)
+            MaterialTheme.colorScheme.primary
+        else
+            MaterialTheme.colorScheme.onSurface
     )
 }
 
 @Composable
 private fun TrainerWorkoutContent(r: StudentRewardsStats) {
-    Text("Первая тренировка от тренера", fontWeight = FontWeight.Bold)
+    Text("💪 Первая тренировка от тренера", fontWeight = FontWeight.Bold)
+
     Text(
         if (r.completedTrainerWorkout) {
-            "Вы завершили тренировку по плану тренера"
+            "Ты завершила тренировку по плану тренера ✅"
         } else {
-            "Импортируйте JSON от тренера и завершите такую тренировку"
+            "Импортируй тренировку от тренера и выполни её"
         },
-        fontWeight = FontWeight.Medium
+        color = if (r.completedTrainerWorkout)
+            MaterialTheme.colorScheme.primary
+        else
+            MaterialTheme.colorScheme.onSurface
     )
 }

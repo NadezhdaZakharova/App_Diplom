@@ -46,6 +46,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -58,6 +59,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -74,19 +76,14 @@ import com.example.diplom.domain.model.WorkoutExercise
 import com.example.diplom.ui.MainUiState
 import com.example.diplom.ui.UiStrings
 import com.example.diplom.ui.components.AccessibleTextButton
-import com.example.diplom.ui.theme.DarkBackground
-import com.example.diplom.ui.theme.DarkSurface
 import com.example.diplom.ui.theme.DiplomTheme
-import com.example.diplom.ui.theme.GreenPrimary
-import com.example.diplom.ui.theme.OrangeAccent
-import com.example.diplom.ui.theme.TextPrimaryDark
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private const val ADD_EXERCISE_HEADING = "Добавить упражнение в банк"
 
-// ─── Вспомогательные UI-компоненты ───────────────────────────────────────────
+// ═══ Вспомогательные UI-компоненты ═════════════════════════════════════════════
 
 @Composable
 fun SectionHeader(title: String, icon: ImageVector) {
@@ -97,15 +94,16 @@ fun SectionHeader(title: String, icon: ImageVector) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = GreenPrimary,
-            modifier = Modifier.size(20.dp)
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(24.dp)
         )
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(12.dp))
         Text(
             title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
-            color = TextPrimaryDark
+            color = MaterialTheme.colorScheme.onBackground,
+            fontSize = 16.sp
         )
     }
 }
@@ -123,18 +121,20 @@ private fun GreenButton(
         enabled = enabled,
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = GreenPrimary,
-            contentColor = Color.Black,
-            disabledContainerColor = Color(0xFF1E2A38),
-            disabledContentColor = Color(0xFF6B7A8D)
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            disabledContainerColor = MaterialTheme.colorScheme.outline,
+            disabledContentColor = MaterialTheme.colorScheme.outlineVariant
         ),
-        modifier = modifier.defaultMinSize(minHeight = 48.dp)
+        modifier = modifier
+            .defaultMinSize(minHeight = 48.dp)
+            .shadow(if (enabled) 4.dp else 0.dp, RoundedCornerShape(12.dp))
     ) {
         if (icon != null) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(8.dp))
         }
-        Text(text, fontWeight = FontWeight.SemiBold)
+        Text(text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
     }
 }
 
@@ -150,17 +150,17 @@ private fun OutlineButton(
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = Color.Transparent,
-            contentColor = GreenPrimary
+            contentColor = MaterialTheme.colorScheme.primary
         ),
         modifier = modifier
             .defaultMinSize(minHeight = 48.dp)
-            .border(1.dp, GreenPrimary, RoundedCornerShape(12.dp))
+            .border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
     ) {
         if (icon != null) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(8.dp))
         }
-        Text(text, fontWeight = FontWeight.Medium)
+        Text(text, fontWeight = FontWeight.Medium, fontSize = 14.sp)
     }
 }
 
@@ -174,20 +174,27 @@ private fun StyledTextField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label, color = Color(0xFF6B7A8D)) },
+        label = { Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp) },
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = GreenPrimary,
-            unfocusedBorderColor = Color(0xFF1E2A38),
-            focusedTextColor = TextPrimaryDark,
-            unfocusedTextColor = TextPrimaryDark,
-            cursorColor = GreenPrimary
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+            cursorColor = MaterialTheme.colorScheme.primary,
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface
         ),
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
+        textStyle = MaterialTheme.typography.bodyMedium.copy(
+            color = MaterialTheme.colorScheme.onSurface
+        ),
+        singleLine = false,
+        maxLines = 3
     )
 }
 
-// ─── Карточка добавления упражнения ──────────────────────────────────────────
+// ═══ Карточка добавления упражнения ════════════════════════════════════════════
 
 @Composable
 fun AddExerciseToBankCard(
@@ -202,34 +209,41 @@ fun AddExerciseToBankCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(16.dp)),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFF1E2A38))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
                 heading,
-                fontWeight = FontWeight.SemiBold,
-                color = TextPrimaryDark,
-                fontSize = 15.sp
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 16.sp
             )
-            StyledTextField(titleInput, onTitleChange, "Название")
+            StyledTextField(titleInput, onTitleChange, "Название упражнения")
             StyledTextField(descriptionInput, onDescriptionChange, "Описание")
             StyledTextField(
                 value = repsInput,
                 onValueChange = { onRepsChange(it.filter { ch -> ch.isDigit() }) },
                 label = "Повторения по умолчанию"
             )
-            GreenButton("Добавить", onSubmit, icon = Icons.Default.Add)
+            GreenButton(
+                "Добавить упражнение",
+                onSubmit,
+                icon = Icons.Default.Add,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
 
-// ─── Карточка упражнения из банка ────────────────────────────────────────────
+// ═══ Карточка упражнения из банка ══════════════════════════════════════════════
 
 @Composable
 private fun ExerciseBankEntryCard(
@@ -239,64 +253,66 @@ private fun ExerciseBankEntryCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFF1E2A38))
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(2.dp, RoundedCornerShape(14.dp)),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Иконка-аватар упражнения
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(48.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF0F2A1A)),
+                    .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.FitnessCenter,
                     contentDescription = null,
-                    tint = GreenPrimary,
-                    modifier = Modifier.size(22.dp)
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
                 )
             }
-            Spacer(Modifier.width(12.dp))
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     exercise.title,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimaryDark,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 14.sp
                 )
                 if (exercise.description.isNotBlank()) {
                     Text(
                         exercise.description,
-                        color = Color(0xFF6B7A8D),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
                         maxLines = 1
                     )
                 }
                 Text(
                     "${exercise.defaultReps} повт.",
-                    color = GreenPrimary,
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.SemiBold
                 )
             }
-            Spacer(Modifier.width(8.dp))
+
             GreenButton(
                 text = actionLabel,
                 onClick = onAction,
-                modifier = Modifier.defaultMinSize(minWidth = 80.dp)
+                modifier = Modifier.defaultMinSize(minWidth = 90.dp)
             )
         }
     }
 }
 
-// ─── Строка запланированного упражнения ──────────────────────────────────────
+// ═══ Строка запланированного упражнения ════════════════════════════════════════
 
 @Composable
 private fun PlannedExerciseRow(
@@ -305,58 +321,71 @@ private fun PlannedExerciseRow(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFF1E2A38))
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(2.dp, RoundedCornerShape(12.dp)),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(30.dp)
+                    .size(36.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF0F2A1A)),
+                    .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     "${item.sortOrder + 1}",
-                    color = GreenPrimary,
-                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
-            Spacer(Modifier.width(12.dp))
+
             Text(
                 item.title,
-                color = TextPrimaryDark,
-                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
                 modifier = Modifier.weight(1f)
             )
+
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFF0F2A1A))
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
-                Text("${item.plannedReps} повт.", color = GreenPrimary, fontSize = 12.sp)
+                Text(
+                    "${item.plannedReps} повт.",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
-            Spacer(Modifier.width(8.dp))
-            IconButton(onClick = { onRemove(item.id) }, modifier = Modifier.size(36.dp)) {
+
+            IconButton(
+                onClick = { onRemove(item.id) },
+                modifier = Modifier.size(40.dp)
+            ) {
                 Icon(
                     Icons.Default.Delete,
                     contentDescription = UiStrings.REMOVE_FROM_LIST_A11Y,
-                    tint = Color(0xFF6B7A8D),
-                    modifier = Modifier.size(18.dp)
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
     }
 }
 
-// ─── Блок JSON для тренера ────────────────────────────────────────────────────
+// ═══ Блок JSON для тренера ════════════════════════════════════════════════════
 
 @Composable
 private fun CopyableTrainerJsonBlock(
@@ -371,25 +400,52 @@ private fun CopyableTrainerJsonBlock(
         exit = fadeOut() + shrinkVertically()
     ) {
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(4.dp, RoundedCornerShape(16.dp)),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F2A1A)),
-            border = androidx.compose.foundation.BorderStroke(1.dp, GreenPrimary.copy(alpha = 0.4f))
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+            border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    UiStrings.JSON_FOR_STUDENT,
-                    fontWeight = FontWeight.SemiBold,
-                    color = GreenPrimary
-                )
-                Text(
-                    exportedJson,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF6B7A8D)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Share,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        UiStrings.JSON_FOR_STUDENT,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 14.sp
+                    )
+                }
+
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp)),
+                    color = MaterialTheme.colorScheme.background,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                ) {
+                    Text(
+                        exportedJson,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .padding(12.dp)
+                            .fillMaxWidth()
+                    )
+                }
+
                 GreenButton(
                     text = "Копировать JSON",
                     icon = Icons.Default.Share,
@@ -401,17 +457,19 @@ private fun CopyableTrainerJsonBlock(
                                 )
                             )
                         }
-                    }
+                    },
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
     }
+
     importStatus?.let {
-        Text(it, color = Color(0xFF6B7A8D), fontSize = 13.sp)
+        Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
     }
 }
 
-// ─── Главный экран тренировок ─────────────────────────────────────────────────
+// ═══ Главный экран тренировок ══════════════════════════════════════════════════
 
 @Composable
 fun TrainingScreen(
@@ -447,36 +505,42 @@ fun TrainingScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Режим-бейдж вверху
         item {
             val isTrainer = state.userMode == AppUserMode.TRAINER
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(vertical = 4.dp)
+                modifier = Modifier.padding(vertical = 8.dp)
             ) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
-                        .background(if (isTrainer) Color(0xFF1A1060) else Color(0xFF0F2A1A))
-                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                        .background(if (isTrainer) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer)
+                        .border(
+                            1.dp,
+                            if (isTrainer) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                            RoundedCornerShape(20.dp)
+                        )
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Icon(
                             if (isTrainer) Icons.Default.Person else Icons.Default.FitnessCenter,
                             contentDescription = null,
-                            tint = if (isTrainer) Color(0xFF818CF8) else GreenPrimary,
-                            modifier = Modifier.size(14.dp)
+                            tint = if (isTrainer) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
                         )
-                        Spacer(Modifier.width(6.dp))
                         Text(
                             if (isTrainer) "Режим тренера" else "Режим ученика",
-                            color = if (isTrainer) Color(0xFF818CF8) else GreenPrimary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
+                            color = if (isTrainer) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
@@ -556,7 +620,7 @@ fun TrainingScreen(
     }
 }
 
-// ─── Контент тренера ──────────────────────────────────────────────────────────
+// ═══ Контент тренера ═══════════════════════════════════════════════════════════
 
 @Suppress("LongParameterList")
 private fun LazyListScope.trainerTrainingContent(
@@ -571,30 +635,35 @@ private fun LazyListScope.trainerTrainingContent(
 ) {
     item {
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(2.dp, RoundedCornerShape(16.dp)),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = DarkSurface),
-            border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFF1E2A38))
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(14.dp),
+                    .padding(16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     Icon(
                         Icons.Default.FitnessCenter,
                         contentDescription = null,
-                        tint = GreenPrimary,
-                        modifier = Modifier.size(18.dp)
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(Modifier.width(8.dp))
                     Text(
                         "Банк упражнений",
                         fontWeight = FontWeight.SemiBold,
-                        color = TextPrimaryDark
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 15.sp
                     )
                 }
                 AccessibleTextButton(
@@ -606,7 +675,9 @@ private fun LazyListScope.trainerTrainingContent(
                 ) {
                     Text(
                         if (bankExpanded) "Скрыть" else "Показать",
-                        color = GreenPrimary
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp
                     )
                 }
             }
@@ -636,13 +707,15 @@ private fun LazyListScope.trainerTrainingContent(
             modifier = Modifier.fillMaxWidth()
         )
     }
+
     item {
         Text(
             "После нажатия JSON появится ниже — скопируйте и отправьте ученику.",
-            color = Color(0xFF6B7A8D),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 13.sp
         )
     }
+
     item {
         CopyableTrainerJsonBlock(
             exportedJson = state.exportedJson,
@@ -653,7 +726,7 @@ private fun LazyListScope.trainerTrainingContent(
     }
 }
 
-// ─── Контент ученика ──────────────────────────────────────────────────────────
+// ═══ Контент ученика ═══════════════════════════════════════════════════════════
 
 @Suppress("LongParameterList")
 private fun LazyListScope.studentTrainingContent(
@@ -679,9 +752,8 @@ private fun LazyListScope.studentTrainingContent(
     onStartSelfWorkout: () -> Unit,
     onStartTrainerWorkout: () -> Unit
 ) {
-    // Кнопки выбора режима
     item {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (studentSelfSectionVisible) {
                 GreenButton(
                     "Самостоятельная",
@@ -719,19 +791,20 @@ private fun LazyListScope.studentTrainingContent(
         }
     }
 
-    // Самостоятельная секция
     if (studentSelfSectionVisible) {
         item {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(2.dp, RoundedCornerShape(16.dp)),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFF1E2A38))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(14.dp),
+                        .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -740,7 +813,7 @@ private fun LazyListScope.studentTrainingContent(
                         onClick = onToggleAddExerciseForm,
                         contentDescription = UiStrings.ADD_EXERCISE_FORM_A11Y
                     ) {
-                        Text(UiStrings.ADD_OWN_EXERCISE, color = GreenPrimary)
+                        Text(UiStrings.ADD_OWN_EXERCISE, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     }
                 }
             }
@@ -788,7 +861,6 @@ private fun LazyListScope.studentTrainingContent(
         }
     }
 
-    // Секция от тренера
     if (studentTrainerSectionVisible) {
         item {
             StyledTextField(
@@ -806,7 +878,7 @@ private fun LazyListScope.studentTrainingContent(
         }
         item {
             state.importStatus?.let {
-                Text(it, color = Color(0xFF6B7A8D), fontSize = 13.sp)
+                Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
             }
         }
         items(state.trainerWorkout) { item ->
@@ -824,7 +896,7 @@ private fun LazyListScope.studentTrainingContent(
     }
 }
 
-// ─── Экран сессии тренировки ──────────────────────────────────────────────────
+// ═══ Экран сессии тренировки ═══════════════════════════════════════════════════
 
 @Composable
 fun WorkoutSessionScreen(
@@ -883,18 +955,22 @@ fun WorkoutSessionScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item { SectionHeader(title, Icons.Default.FitnessCenter) }
+        item {
+            SectionHeader(title, Icons.Default.FitnessCenter)
+        }
 
         item {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(4.dp, RoundedCornerShape(16.dp)),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFF1E2A38))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -903,24 +979,26 @@ fun WorkoutSessionScreen(
                     ) {
                         Text(
                             "Выполнено: $doneCount из $total",
-                            color = TextPrimaryDark,
-                            fontWeight = FontWeight.SemiBold
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp
                         )
                         Text(
                             "${if (total == 0) 0 else (doneCount * 100 / total)}%",
-                            color = GreenPrimary,
-                            fontWeight = FontWeight.SemiBold
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
                         )
                     }
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(12.dp))
                     LinearProgressIndicator(
                         progress = { progressAnim },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                        color = GreenPrimary,
-                        trackColor = Color(0xFF1E2A38),
+                            .height(10.dp)
+                            .clip(RoundedCornerShape(10.dp)),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.outline,
                         strokeCap = StrokeCap.Round
                     )
                 }
@@ -928,7 +1006,9 @@ fun WorkoutSessionScreen(
         }
 
         if (total == 0) {
-            item { Text("На сегодня нет упражнений.", color = Color(0xFF6B7A8D)) }
+            item {
+                Text("На сегодня нет упражнений.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+            }
             item {
                 OutlineButton("Назад", onFinish, modifier = Modifier.fillMaxWidth())
             }
@@ -938,29 +1018,31 @@ fun WorkoutSessionScreen(
         if (sessionFinished) {
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(6.dp, RoundedCornerShape(16.dp)),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F2A1A)),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, GreenPrimary.copy(alpha = 0.5f))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
                 ) {
                     Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("🎉", fontSize = 40.sp)
+                        Text("🎉", fontSize = 48.sp)
                         Text(
                             "Тренировка завершена!",
                             fontWeight = FontWeight.Bold,
-                            color = GreenPrimary,
-                            fontSize = 18.sp
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 20.sp
                         )
                         Text(
                             "Выполнено $doneCount из $total упражнений",
-                            color = Color(0xFF6B7A8D),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 14.sp
                         )
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(8.dp))
                         GreenButton(
                             "К списку тренировок",
                             onFinish,
@@ -975,52 +1057,56 @@ fun WorkoutSessionScreen(
         val current = items[currentIndex]
         item {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(4.dp, RoundedCornerShape(16.dp)),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFF1E2A38))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
                         "Текущее упражнение",
-                        color = Color(0xFF6B7A8D),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
                         current.title,
-                        color = TextPrimaryDark,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
+                        fontSize = 22.sp
                     )
-                    // Таймер
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(vertical = 8.dp)
                     ) {
                         Icon(
                             Icons.Default.Timer,
                             contentDescription = null,
-                            tint = OrangeAccent,
-                            modifier = Modifier.size(20.dp)
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(24.dp)
                         )
                         val timerColor by animateColorAsState(
-                            targetValue = if (remainingSeconds <= 5) OrangeAccent else GreenPrimary,
+                            targetValue = if (remainingSeconds <= 5) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                             animationSpec = tween(500),
                             label = "timerColor"
                         )
                         Text(
                             "$remainingSeconds сек",
                             color = timerColor,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.ExtraBold
                         )
                     }
+
                     GreenButton(
-                        text = if (timerRunning) "Идёт..." else "Запустить отсчёт",
+                        text = if (timerRunning) "Идёт отсчёт..." else "Запустить отсчёт",
                         onClick = { timerRunning = true },
                         enabled = !timerRunning,
                         icon = Icons.Default.PlayArrow,
@@ -1032,7 +1118,7 @@ fun WorkoutSessionScreen(
     }
 }
 
-// ─── Preview ──────────────────────────────────────────────────────────────────
+// ═══ Preview ═══════════════════════════════════════════════════════════════════
 
 @Preview(showBackground = true)
 @Composable
