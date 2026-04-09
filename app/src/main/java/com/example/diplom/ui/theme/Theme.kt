@@ -13,36 +13,38 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    onPrimary = Color(0xFF381E72),
-    secondary = PurpleGrey80,
-    onSecondary = Color(0xFF332D41),
-    tertiary = Pink80,
-    onTertiary = Color(0xFF492532),
-    background = Color(0xFF10131A),
-    surface = Color(0xFF141822),
-    onBackground = Color(0xFFE6E1E9),
-    onSurface = Color(0xFFE6E1E9),
+    primary = GreenPrimary,
+    onPrimary = Color.Black,
+
+    secondary = OrangeAccent,
+    onSecondary = Color.Black,
+
+    background = DarkBackground,
+    surface = DarkSurface,
+
+    onBackground = TextPrimaryDark,
+    onSurface = TextPrimaryDark,
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
+    primary = GreenPrimary,
     onPrimary = Color.White,
-    secondary = PurpleGrey40,
+
+    secondary = OrangeAccent,
     onSecondary = Color.White,
-    tertiary = Pink40,
-    onTertiary = Color.White,
-    background = Color(0xFFFEF7FF),
-    surface = Color(0xFFFEF7FF),
-    onBackground = Color(0xFF1D1B20),
-    onSurface = Color(0xFF1D1B20),
+
+    background = LightBackground,
+    surface = LightSurface,
+
+    onBackground = TextPrimaryLight,
+    onSurface = TextPrimaryLight,
 )
 
 @Composable
 fun DiplomTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

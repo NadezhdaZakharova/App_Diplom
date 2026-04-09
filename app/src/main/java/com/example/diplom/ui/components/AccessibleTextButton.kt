@@ -30,6 +30,13 @@ fun AccessibleTextButton(
                     Modifier
                 }
             ),
-        content = content
-    )
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+
+        colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+            containerColor = androidx.compose.material3.MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+            contentColor = androidx.compose.material3.MaterialTheme.colorScheme.primary
+        )
+    ) {
+        content()
+    }
 }

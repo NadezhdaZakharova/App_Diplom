@@ -1,5 +1,10 @@
 package com.example.diplom.ui.screens
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,63 +15,97 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.diplom.domain.model.StudentRewardsStats
 import com.example.diplom.ui.MainUiState
+import com.example.diplom.ui.theme.DarkBackground
+import com.example.diplom.ui.theme.DarkSurface
+import com.example.diplom.ui.theme.GreenPrimary
+import com.example.diplom.ui.theme.OrangeAccent
+import com.example.diplom.ui.theme.TextPrimaryDark
 
 @Composable
 fun RewardsAndStatsScreen(state: MainUiState, modifier: Modifier = Modifier) {
     val totalSteps = state.recentDays.sumOf { it.steps }
     val totalKm = state.recentDays.sumOf { it.distanceKm }
     val r = state.studentRewards
+
     val monthProgress =
         if (r.daysInMonth > 0) {
             (r.workoutSessionsThisMonth / r.daysInMonth.toFloat()).coerceIn(0f, 1f)
-        } else {
-            0f
-        }
+        } else 0f
+
+    val progressAnim by animateFloatAsState(
+        targetValue = monthProgress,
+        animationSpec = tween(800),
+        label = "monthProgress"
+    )
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
+            .background(DarkBackground)
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+
+        // 🔥 Заголовок + уровень
         item {
             Text(
                 "Достижения",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                color = TextPrimaryDark,
+                fontWeight = FontWeight.Bold,
+                fontSize = 22.sp
             )
-            Spacer(modifier = Modifier.height(8.dp))
+
+            Spacer(Modifier.height(6.dp))
+
         }
+
+        // 🏆 достижения
         item { AchievementCard { WeekTopExerciseContent(r) } }
         item { AchievementCard { WeeklyMarathonContent(r) } }
-        item { AchievementCard { MonthlyWorkoutsContent(r, monthProgress) } }
+        item { AchievementCard { MonthlyWorkoutsContent(r, progressAnim) } }
         item { AchievementCard { StreakContent(r) } }
         item { AchievementCard { FirstWeekContent(r) } }
         item { AchievementCard { VarietyContent(r) } }
         item { AchievementCard { TrainerWorkoutContent(r) } }
+
+        // 📊 активность
         item {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Активность (недавние дни)", fontWeight = FontWeight.Bold)
-            Text("Шагов за период: $totalSteps")
-            Text("Расстояние: ${"%.2f".format(totalKm)} км")
+            SectionHeader("Активность", Icons.Default.FitnessCenter)
+            Text("Шагов: $totalSteps", color = TextPrimaryDark)
+            Text("Дистанция: ${"%.2f".format(totalKm)} км", color = TextPrimaryDark)
         }
+
         items(state.recentDays) { day ->
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                border = BorderStroke(0.5.dp, Color(0xFF1E2A38))
+            ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(14.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(day.dateIso)
-                    Text("${day.steps} шагов")
+                    Text(day.dateIso, color = TextPrimaryDark)
+                    Text("${day.steps} шагов", color = GreenPrimary)
                 }
             }
         }
@@ -75,9 +114,14 @@ fun RewardsAndStatsScreen(state: MainUiState, modifier: Modifier = Modifier) {
 
 @Composable
 private fun AchievementCard(content: @Composable () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        border = BorderStroke(0.5.dp, Color(0xFF1E2A38))
+    ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             content()
@@ -113,19 +157,30 @@ private fun WeeklyMarathonContent(r: StudentRewardsStats) {
 }
 
 @Composable
-private fun MonthlyWorkoutsContent(r: StudentRewardsStats, monthProgress: Float) {
-    Text("Тренировки в этом месяце", fontWeight = FontWeight.Bold)
-    Text("${r.workoutSessionsThisMonth} за ${r.daysInMonth} дн.")
-    LinearProgressIndicator(
-        progress = { monthProgress },
-        modifier = Modifier.fillMaxWidth()
+private fun MonthlyWorkoutsContent(r: StudentRewardsStats, progress: Float) {
+    val color by animateColorAsState(
+        targetValue = if (progress > 0.7f) GreenPrimary else OrangeAccent,
+        label = "progressColor"
     )
+
+    Text("Тренировки в этом месяце", fontWeight = FontWeight.Bold, color = TextPrimaryDark)
+
     Text(
-        "Шкала: 0 — ${r.daysInMonth} тренировок (по одной в день)",
-        style = MaterialTheme.typography.bodySmall
+        "${r.workoutSessionsThisMonth} из ${r.daysInMonth}",
+        color = color,
+        fontWeight = FontWeight.SemiBold
+    )
+
+    LinearProgressIndicator(
+        progress = { progress },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(8.dp)
+            .clip(RoundedCornerShape(8.dp)),
+        color = color,
+        trackColor = Color(0xFF1E2A38)
     )
 }
-
 @Composable
 private fun StreakContent(r: StudentRewardsStats) {
     Text("Серия дней с тренировками", fontWeight = FontWeight.Bold)
