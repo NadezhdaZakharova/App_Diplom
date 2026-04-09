@@ -1,5 +1,7 @@
 package com.example.diplom.ui
 
+import androidx.compose.animation.animateContentSize
+import com.example.diplom.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -99,34 +102,82 @@ private fun ModeSelectionScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+
         Text(
             text = UiStrings.PICK_MODE_TITLE,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.semantics {
-                heading()
-                contentDescription = UiStrings.PICK_MODE_HEADING_A11Y
-            }
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
         )
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(
-            onClick = onStudent,
-            modifier = Modifier
-                .fillMaxWidth()
-                .defaultMinSize(minHeight = 48.dp)
-                .semantics { contentDescription = UiStrings.SELECT_STUDENT_A11Y }
-        ) { Text(UiStrings.ROLE_STUDENT) }
-        Spacer(modifier = Modifier.height(12.dp))
-        Button(
-            onClick = onTrainer,
-            modifier = Modifier
-                .fillMaxWidth()
-                .defaultMinSize(minHeight = 48.dp)
-                .semantics { contentDescription = UiStrings.SELECT_TRAINER_A11Y }
-        ) { Text(UiStrings.ROLE_TRAINER) }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // УЧЕНИК
+        ModeCard(
+            title = UiStrings.ROLE_STUDENT,
+            description = "Тренируйся по готовым программам",
+            imageRes = R.drawable.trainer,
+            onClick = onStudent
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ТРЕНЕР
+        ModeCard(
+            title = UiStrings.ROLE_TRAINER,
+            description = "Создавай тренировки для других",
+            imageRes = R.drawable.student,
+            onClick = onTrainer
+        )
     }
 }
+@Composable
+fun ModeCard(
+    title: String,
+    description: String,
+    imageRes: Int,
+    onClick: () -> Unit
+) {
+    androidx.compose.material3.Card(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(),
+        shape = MaterialTheme.shapes.large
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
 
+            // КАРТИНКА
+            androidx.compose.foundation.Image(
+                painter = androidx.compose.ui.res.painterResource(id = imageRes),
+                contentDescription = title,
+                modifier = Modifier
+                    .height(80.dp)
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // ТЕКСТ
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+    }
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MainScaffold(
