@@ -1,6 +1,7 @@
 package com.example.diplom
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -10,21 +11,20 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
-import com.example.diplom.app.AppContainer
 import com.example.diplom.data.sensor.StepCounterManager
 import com.example.diplom.ui.DiplomApp
 import com.example.diplom.ui.MainViewModel
 import com.example.diplom.ui.theme.DiplomTheme
+import com.example.diplom.work.DailyWorkScheduler
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private lateinit var container: AppContainer
-    private val mainViewModel: MainViewModel by viewModels {
-        MainViewModel.factory(
-            activityRepository = container.activityRepository,
-            gamificationRepository = container.gamificationRepository,
-            trainingRepository = container.trainingRepository
-        )
-    }
+    private val mainViewModel: MainViewModel by viewModels()
+
+    @Inject
+    lateinit var dailyWorkScheduler: DailyWorkScheduler
     private lateinit var stepCounterManager: StepCounterManager
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -36,16 +36,33 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        container = AppContainer(applicationContext)
         stepCounterManager = StepCounterManager(applicationContext) { delta ->
             mainViewModel.addSteps(delta)
         }
-        container.scheduleDailyRecalculation(applicationContext)
+        dailyWorkScheduler.scheduleDailyRecalculation()
         enableEdgeToEdge()
         setContent {
             DiplomTheme {
                 DiplomApp(mainViewModel)
             }
+        }
+        handleSendIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleSendIntent(intent)
+    }
+
+    private fun handleSendIntent(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_SEND) return
+        val mime = intent.type.orEmpty()
+        if (mime.isNotBlank() && !mime.startsWith("text/")) return
+        val text = intent.getStringExtra(Intent.EXTRA_TEXT)
+            ?: intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()
+        if (!text.isNullOrBlank()) {
+            mainViewModel.importWorkoutFromShareIntent(text)
         }
     }
 

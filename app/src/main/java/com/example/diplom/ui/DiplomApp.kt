@@ -236,9 +236,18 @@ private fun MainScaffold(
                     state = uiState,
                     modifier = Modifier.fillMaxSize(),
                     onAddExercise = viewModel::addExercise,
+                    onUpdateExercise = viewModel::updateExercise,
                     onAddToWorkout = viewModel::addToWorkout,
                     onAddToTrainerWorkout = viewModel::addToTrainerWorkout,
+                    onSaveTrainerExerciseToBank = { item ->
+                        viewModel.addExercise(
+                            title = item.title,
+                            description = item.description,
+                            reps = item.plannedReps
+                        )
+                    },
                     onRemoveWorkoutItem = viewModel::removeWorkoutItem,
+                    onMoveWorkoutItem = viewModel::moveWorkoutItem,
                     onImportTrainerWorkout = viewModel::importTrainerWorkout,
                     onExportTrainerWorkout = viewModel::exportTrainerWorkout,
                     onStartSelfWorkout = {

@@ -10,14 +10,13 @@ import androidx.room.RoomDatabase
         DailyActivityEntity::class,
         UserSettingsEntity::class,
         AchievementEntity::class,
-        StoryChapterEntity::class,
         WeeklyChallengeEntity::class,
         ExerciseEntity::class,
         PlannedWorkoutEntity::class,
         CompletedWorkoutSessionEntity::class,
         ExerciseCompletionEventEntity::class
     ],
-    version = 5,
+    version = 7,
     exportSchema = false
 )
 abstract class DiplomDatabase : RoomDatabase() {

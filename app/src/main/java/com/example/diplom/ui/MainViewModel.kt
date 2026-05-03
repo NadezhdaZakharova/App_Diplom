@@ -1,16 +1,12 @@
 package com.example.diplom.ui
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.diplom.domain.GamificationEngine
 import com.example.diplom.domain.model.Achievement
 import com.example.diplom.domain.model.AppUserMode
 import com.example.diplom.domain.model.DailyStats
 import com.example.diplom.domain.model.Exercise
 import com.example.diplom.domain.model.PlayerProfile
-import com.example.diplom.domain.model.StoryChapter
-import com.example.diplom.domain.model.StudentRewardsStats
 import com.example.diplom.domain.model.WeeklyChallenge
 import com.example.diplom.domain.model.WorkoutExercise
 import com.example.diplom.domain.repository.ActivityRepository
@@ -18,7 +14,7 @@ import com.example.diplom.domain.repository.GamificationRepository
 import com.example.diplom.domain.repository.TrainingRepository
 import com.example.diplom.domain.usecase.AddStepsUseCase
 import com.example.diplom.domain.usecase.BootstrapGameUseCase
-import com.example.diplom.domain.usecase.SetDailyGoalUseCase
+import com.example.diplom.domain.usecase.ImportWorkoutUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,47 +23,17 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-data class DiplomAppNavigationState(
-    val showModePicker: Boolean = true,
-    val currentDestination: AppDestinations = AppDestinations.TRAINING,
-    val sessionActive: Boolean = false,
-    val sessionItems: List<WorkoutExercise> = emptyList(),
-    val sessionTitle: String = "Тренировка",
-    val sessionInstanceId: Int = 0,
-    val sessionFromTrainer: Boolean = false
-)
-
-data class MainUiState(
-    val today: DailyStats = DailyStats("", 0, 0, 0.0),
-    val recentDays: List<DailyStats> = emptyList(),
-    val dailyGoal: Int = 8000,
-    val profile: PlayerProfile = PlayerProfile(0, 1, 0, 0),
-    val weeklyChallenge: WeeklyChallenge = WeeklyChallenge("", 55000, 0, false),
-    val achievements: List<Achievement> = emptyList(),
-    val studentRewards: StudentRewardsStats = StudentRewardsStats(),
-    val chapters: List<StoryChapter> = emptyList(),
-    val userMode: AppUserMode = AppUserMode.STUDENT,
-    val exerciseBank: List<Exercise> = emptyList(),
-    val selfWorkout: List<WorkoutExercise> = emptyList(),
-    val trainerWorkout: List<WorkoutExercise> = emptyList(),
-    val exportedJson: String = "",
-    val importStatus: String? = null
-) {
-    val goalProgressFraction: Float
-        get() = (today.steps / dailyGoal.toFloat()).coerceIn(0f, 1f)
-
-    val levelProgressFraction: Float
-        get() = GamificationEngine.levelProgressFraction(profile.xp)
-}
-
-class MainViewModel(
+@HiltViewModel
+class MainViewModel @Inject constructor(
     activityRepository: ActivityRepository,
     gamificationRepository: GamificationRepository,
     private val trainingRepository: TrainingRepository,
     private val addStepsUseCase: AddStepsUseCase,
-    private val setDailyGoalUseCase: SetDailyGoalUseCase,
-    private val bootstrapGameUseCase: BootstrapGameUseCase
+    private val bootstrapGameUseCase: BootstrapGameUseCase,
+    private val importWorkoutUseCase: ImportWorkoutUseCase
 ) : ViewModel() {
     private val transferState = MutableStateFlow(TransferState())
     private val _appNavigation = MutableStateFlow(DiplomAppNavigationState())
@@ -84,10 +50,9 @@ class MainViewModel(
 
     private val gameState = combine(
         gamificationRepository.observeWeeklyChallenge(),
-        gamificationRepository.observeAchievements(),
-        gamificationRepository.observeChapters()
-    ) { weekly, achievements, chapters ->
-        GameState(weekly, achievements, chapters)
+        gamificationRepository.observeAchievements()
+    ) { weekly, achievements ->
+        GameState(weekly, achievements)
     }
 
     private val trainingState = combine(
@@ -114,7 +79,6 @@ class MainViewModel(
             weeklyChallenge = game.weekly,
             achievements = game.achievements,
             studentRewards = studentRewards,
-            chapters = game.chapters,
             userMode = training.mode,
             exerciseBank = training.bank,
             selfWorkout = training.selfWorkout,
@@ -139,12 +103,6 @@ class MainViewModel(
     fun addSteps(steps: Int) {
         viewModelScope.launch {
             addStepsUseCase(steps)
-        }
-    }
-
-    fun updateDailyGoal(goal: Int) {
-        viewModelScope.launch {
-            setDailyGoalUseCase(goal)
         }
     }
 
@@ -208,6 +166,12 @@ class MainViewModel(
         }
     }
 
+    fun updateExercise(id: Long, title: String, description: String, reps: Int) {
+        viewModelScope.launch {
+            trainingRepository.updateExercise(id, title, description, reps)
+        }
+    }
+
     fun addToWorkout(exercise: Exercise) {
         viewModelScope.launch {
             trainingRepository.addExerciseToSelfWorkout(exercise)
@@ -223,6 +187,12 @@ class MainViewModel(
     fun removeWorkoutItem(id: Long) {
         viewModelScope.launch {
             trainingRepository.removeWorkoutItem(id)
+        }
+    }
+
+    fun moveWorkoutItem(id: Long, moveDown: Boolean) {
+        viewModelScope.launch {
+            trainingRepository.moveWorkoutItem(id, moveDown)
         }
     }
 
@@ -246,7 +216,7 @@ class MainViewModel(
 
     fun importTrainerWorkout(json: String) {
         viewModelScope.launch {
-            val result = trainingRepository.importTrainerWorkoutFromJson(json)
+            val result = importWorkoutUseCase(json)
             val message = if (result.isSuccess) {
                 "Тренировка от тренера загружена"
             } else {
@@ -256,25 +226,30 @@ class MainViewModel(
         }
     }
 
-    companion object {
-        fun factory(
-            activityRepository: ActivityRepository,
-            gamificationRepository: GamificationRepository,
-            trainingRepository: TrainingRepository
-        ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return MainViewModel(
-                    activityRepository = activityRepository,
-                    gamificationRepository = gamificationRepository,
-                    trainingRepository = trainingRepository,
-                    addStepsUseCase = AddStepsUseCase(activityRepository, gamificationRepository),
-                    setDailyGoalUseCase = SetDailyGoalUseCase(activityRepository, gamificationRepository),
-                    bootstrapGameUseCase = BootstrapGameUseCase(gamificationRepository)
-                ) as T
+    /**
+     * Входящий текст из меню «Поделиться» (ACTION_SEND).
+     * Валидирует JSON, импортирует план и открывает раздел ученика с экраном тренировки.
+     */
+    fun importWorkoutFromShareIntent(rawText: String) {
+        viewModelScope.launch {
+            val result = importWorkoutUseCase(rawText)
+            val message = if (result.isSuccess) {
+                trainingRepository.setUserMode(AppUserMode.STUDENT)
+                _appNavigation.update {
+                    it.copy(
+                        showModePicker = false,
+                        currentDestination = AppDestinations.TRAINING,
+                        sessionActive = false
+                    )
+                }
+                "Тренировка из «Поделиться» загружена — откройте «От тренера»"
+            } else {
+                "Не удалось импортировать: ${result.exceptionOrNull()?.message ?: "неизвестно"}"
             }
+            transferState.update { it.copy(importStatus = message) }
         }
     }
+
 }
 
 private data class ActivityState(
@@ -286,8 +261,7 @@ private data class ActivityState(
 
 private data class GameState(
     val weekly: WeeklyChallenge,
-    val achievements: List<Achievement>,
-    val chapters: List<StoryChapter>
+    val achievements: List<Achievement>
 )
 
 private data class TrainingState(

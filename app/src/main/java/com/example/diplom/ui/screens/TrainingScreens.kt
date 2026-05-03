@@ -1,6 +1,7 @@
 package com.example.diplom.ui.screens
 
 import android.content.ClipData
+import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -31,7 +32,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
@@ -40,6 +47,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -66,6 +74,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -114,7 +123,8 @@ private fun GreenButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    icon: ImageVector? = null
+    icon: ImageVector? = null,
+    minHeight: androidx.compose.ui.unit.Dp = 48.dp
 ) {
     Button(
         onClick = onClick,
@@ -127,7 +137,7 @@ private fun GreenButton(
             disabledContentColor = MaterialTheme.colorScheme.outlineVariant
         ),
         modifier = modifier
-            .defaultMinSize(minHeight = 48.dp)
+            .defaultMinSize(minHeight = minHeight)
             .shadow(if (enabled) 4.dp else 0.dp, RoundedCornerShape(12.dp))
     ) {
         if (icon != null) {
@@ -205,6 +215,7 @@ fun AddExerciseToBankCard(
     onDescriptionChange: (String) -> Unit,
     repsInput: String,
     onRepsChange: (String) -> Unit,
+    submitLabel: String = "Добавить упражнение",
     onSubmit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -234,7 +245,7 @@ fun AddExerciseToBankCard(
                 label = "Повторения по умолчанию"
             )
             GreenButton(
-                "Добавить упражнение",
+                submitLabel,
                 onSubmit,
                 icon = Icons.Default.Add,
                 modifier = Modifier.fillMaxWidth()
@@ -250,8 +261,10 @@ private fun ExerciseBankEntryCard(
     exercise: Exercise,
     actionLabel: String,
     onAction: () -> Unit,
+    onEdit: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    var expandedDescription by rememberSaveable(exercise.id) { mutableStateOf(false) }
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -292,8 +305,25 @@ private fun ExerciseBankEntryCard(
                         exercise.description,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
-                        maxLines = 1
+                        maxLines = if (expandedDescription) 4 else 1
                     )
+                    AccessibleTextButton(
+                        onClick = { expandedDescription = !expandedDescription },
+                        contentDescription = if (expandedDescription) "Свернуть описание" else "Развернуть описание"
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (expandedDescription) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = if (expandedDescription) "Свернуть" else "Подробнее",
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
                 }
                 Text(
                     "${exercise.defaultReps} повт.",
@@ -303,11 +333,24 @@ private fun ExerciseBankEntryCard(
                 )
             }
 
-            GreenButton(
-                text = actionLabel,
-                onClick = onAction,
-                modifier = Modifier.defaultMinSize(minWidth = 90.dp)
-            )
+            Column(
+                modifier = Modifier.width(150.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                GreenButton(
+                    text = actionLabel,
+                    onClick = onAction,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (onEdit != null) {
+                    OutlineButton(
+                        text = "Редактировать",
+                        onClick = onEdit,
+                        icon = Icons.Default.Edit,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
         }
     }
 }
@@ -317,7 +360,10 @@ private fun ExerciseBankEntryCard(
 @Composable
 private fun PlannedExerciseRow(
     item: WorkoutExercise,
+    index: Int,
+    totalCount: Int,
     onRemove: (Long) -> Unit,
+    onMove: (Long, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -370,16 +416,40 @@ private fun PlannedExerciseRow(
                 )
             }
 
-            IconButton(
-                onClick = { onRemove(item.id) },
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = UiStrings.REMOVE_FROM_LIST_A11Y,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(20.dp)
-                )
+            Column {
+                IconButton(
+                    onClick = { onMove(item.id, false) },
+                    enabled = index > 0,
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        Icons.Default.KeyboardArrowUp,
+                        contentDescription = "Поднять выше",
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                IconButton(
+                    onClick = { onMove(item.id, true) },
+                    enabled = index < totalCount - 1,
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Опустить ниже",
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                IconButton(
+                    onClick = { onRemove(item.id) },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = UiStrings.REMOVE_FROM_LIST_A11Y,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }
@@ -392,7 +462,8 @@ private fun CopyableTrainerJsonBlock(
     exportedJson: String,
     importStatus: String?,
     clipboard: Clipboard,
-    scope: CoroutineScope
+    scope: CoroutineScope,
+    onShareJson: (String) -> Unit
 ) {
     AnimatedVisibility(
         visible = exportedJson.isNotBlank(),
@@ -446,20 +517,31 @@ private fun CopyableTrainerJsonBlock(
                     )
                 }
 
-                GreenButton(
-                    text = "Копировать JSON",
-                    icon = Icons.Default.Share,
-                    onClick = {
-                        scope.launch {
-                            clipboard.setClipEntry(
-                                ClipEntry(
-                                    ClipData.newPlainText("trainer_workout_json", exportedJson)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    GreenButton(
+                        text = "Копировать JSON",
+                        icon = Icons.Default.Share,
+                        onClick = {
+                            scope.launch {
+                                clipboard.setClipEntry(
+                                    ClipEntry(
+                                        ClipData.newPlainText("trainer_workout_json", exportedJson)
+                                    )
                                 )
-                            )
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                    GreenButton(
+                        text = "Отправить",
+                        icon = Icons.Default.Share,
+                        onClick = { onShareJson(exportedJson) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     }
@@ -476,9 +558,12 @@ fun TrainingScreen(
     state: MainUiState,
     modifier: Modifier = Modifier,
     onAddExercise: (String, String, Int) -> Unit,
+    onUpdateExercise: (Long, String, String, Int) -> Unit,
     onAddToWorkout: (Exercise) -> Unit,
     onAddToTrainerWorkout: (Exercise) -> Unit,
+    onSaveTrainerExerciseToBank: (WorkoutExercise) -> Unit,
     onRemoveWorkoutItem: (Long) -> Unit,
+    onMoveWorkoutItem: (Long, Boolean) -> Unit,
     onImportTrainerWorkout: (String) -> Unit,
     onExportTrainerWorkout: () -> Unit,
     onStartSelfWorkout: () -> Unit,
@@ -492,11 +577,20 @@ fun TrainingScreen(
     var studentSelfSectionVisible by rememberSaveable { mutableStateOf(false) }
     var studentTrainerSectionVisible by rememberSaveable { mutableStateOf(false) }
     var studentAddExerciseFormVisible by rememberSaveable { mutableStateOf(false) }
+    var editingExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
     val clipboard = LocalClipboard.current
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     val submitAddExercise: () -> Unit = {
-        onAddExercise(titleInput, descriptionInput, repsInput.toIntOrNull() ?: 10)
+        val reps = repsInput.toIntOrNull() ?: 10
+        val editingId = editingExerciseId
+        if (editingId == null) {
+            onAddExercise(titleInput, descriptionInput, reps)
+        } else {
+            onUpdateExercise(editingId, titleInput, descriptionInput, reps)
+            editingExerciseId = null
+        }
         titleInput = ""
         descriptionInput = ""
         repsInput = "10"
@@ -567,23 +661,42 @@ fun TrainingScreen(
                     onDescriptionChange = { descriptionInput = it },
                     repsInput = repsInput,
                     onRepsChange = { repsInput = it },
+                    submitLabel = if (editingExerciseId == null) "Добавить упражнение" else "Сохранить",
                     onSubmit = submitAddExercise
                 )
             }
 
             trainerTrainingContent(
                 state = state,
+                exerciseBank = state.exerciseBank,
                 bankExpanded = bankExpanded,
                 onBankExpandedToggle = { bankExpanded = !bankExpanded },
                 onAddToTrainerWorkout = onAddToTrainerWorkout,
+                onEditExercise = { exercise ->
+                    editingExerciseId = exercise.id
+                    titleInput = exercise.title
+                    descriptionInput = exercise.description
+                    repsInput = exercise.defaultReps.toString()
+                },
                 onRemoveWorkoutItem = onRemoveWorkoutItem,
+                onMoveWorkoutItem = onMoveWorkoutItem,
                 onExportTrainerWorkout = onExportTrainerWorkout,
                 clipboard = clipboard,
-                scope = scope
+                scope = scope,
+                onShareJson = { payload ->
+                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, payload)
+                    }
+                    context.startActivity(
+                        Intent.createChooser(sendIntent, "Отправить тренировку")
+                    )
+                }
             )
         } else {
             studentTrainingContent(
                 state = state,
+                exerciseBank = state.exerciseBank,
                 titleInput = titleInput,
                 onTitleChange = { titleInput = it },
                 descriptionInput = descriptionInput,
@@ -595,6 +708,7 @@ fun TrainingScreen(
                 studentSelfSectionVisible = studentSelfSectionVisible,
                 studentTrainerSectionVisible = studentTrainerSectionVisible,
                 studentAddExerciseFormVisible = studentAddExerciseFormVisible,
+                submitLabel = if (editingExerciseId == null) "Добавить упражнение" else "Сохранить",
                 onSelectSelfSection = {
                     studentSelfSectionVisible = true
                     studentTrainerSectionVisible = false
@@ -607,11 +721,30 @@ fun TrainingScreen(
                     studentAddExerciseFormVisible = !studentAddExerciseFormVisible
                 },
                 onSubmitStudentExercise = {
-                    submitAddExercise()
+                    val reps = repsInput.toIntOrNull() ?: 10
+                    val editingId = editingExerciseId
+                    if (editingId == null) {
+                        onAddExercise(titleInput, descriptionInput, reps)
+                    } else {
+                        onUpdateExercise(editingId, titleInput, descriptionInput, reps)
+                        editingExerciseId = null
+                    }
+                    titleInput = ""
+                    descriptionInput = ""
+                    repsInput = "10"
                     studentAddExerciseFormVisible = false
                 },
+                onEditExercise = { exercise ->
+                    editingExerciseId = exercise.id
+                    titleInput = exercise.title
+                    descriptionInput = exercise.description
+                    repsInput = exercise.defaultReps.toString()
+                    studentAddExerciseFormVisible = true
+                },
                 onAddToWorkout = onAddToWorkout,
+                onSaveTrainerExerciseToBank = onSaveTrainerExerciseToBank,
                 onRemoveWorkoutItem = onRemoveWorkoutItem,
+                onMoveWorkoutItem = onMoveWorkoutItem,
                 onImportTrainerWorkout = onImportTrainerWorkout,
                 onStartSelfWorkout = onStartSelfWorkout,
                 onStartTrainerWorkout = onStartTrainerWorkout
@@ -625,13 +758,17 @@ fun TrainingScreen(
 @Suppress("LongParameterList")
 private fun LazyListScope.trainerTrainingContent(
     state: MainUiState,
+    exerciseBank: List<Exercise>,
     bankExpanded: Boolean,
     onBankExpandedToggle: () -> Unit,
     onAddToTrainerWorkout: (Exercise) -> Unit,
+    onEditExercise: (Exercise) -> Unit,
     onRemoveWorkoutItem: (Long) -> Unit,
+    onMoveWorkoutItem: (Long, Boolean) -> Unit,
     onExportTrainerWorkout: () -> Unit,
     clipboard: Clipboard,
-    scope: CoroutineScope
+    scope: CoroutineScope,
+    onShareJson: (String) -> Unit
 ) {
     item {
         Card(
@@ -685,17 +822,25 @@ private fun LazyListScope.trainerTrainingContent(
     }
 
     if (bankExpanded) {
-        items(state.exerciseBank) { exercise ->
+        items(exerciseBank) { exercise ->
             ExerciseBankEntryCard(
                 exercise = exercise,
                 actionLabel = UiStrings.ACTION_FOR_STUDENT,
-                onAction = { onAddToTrainerWorkout(exercise) }
+                onAction = { onAddToTrainerWorkout(exercise) },
+                onEdit = { onEditExercise(exercise) }
             )
         }
     }
 
-    items(state.trainerWorkout) { item ->
-        PlannedExerciseRow(item = item, onRemove = onRemoveWorkoutItem)
+    items(state.trainerWorkout.size) { index ->
+        val item = state.trainerWorkout[index]
+        PlannedExerciseRow(
+            item = item,
+            index = index,
+            totalCount = state.trainerWorkout.size,
+            onRemove = onRemoveWorkoutItem,
+            onMove = onMoveWorkoutItem
+        )
     }
 
     item {
@@ -703,7 +848,6 @@ private fun LazyListScope.trainerTrainingContent(
             text = "Сформировать тренировку",
             onClick = onExportTrainerWorkout,
             enabled = state.trainerWorkout.isNotEmpty(),
-            icon = Icons.Default.Share,
             modifier = Modifier.fillMaxWidth()
         )
     }
@@ -721,7 +865,8 @@ private fun LazyListScope.trainerTrainingContent(
             exportedJson = state.exportedJson,
             importStatus = state.importStatus,
             clipboard = clipboard,
-            scope = scope
+            scope = scope,
+            onShareJson = onShareJson
         )
     }
 }
@@ -731,6 +876,7 @@ private fun LazyListScope.trainerTrainingContent(
 @Suppress("LongParameterList")
 private fun LazyListScope.studentTrainingContent(
     state: MainUiState,
+    exerciseBank: List<Exercise>,
     titleInput: String,
     onTitleChange: (String) -> Unit,
     descriptionInput: String,
@@ -742,12 +888,16 @@ private fun LazyListScope.studentTrainingContent(
     studentSelfSectionVisible: Boolean,
     studentTrainerSectionVisible: Boolean,
     studentAddExerciseFormVisible: Boolean,
+    submitLabel: String,
     onSelectSelfSection: () -> Unit,
     onSelectTrainerSection: () -> Unit,
     onToggleAddExerciseForm: () -> Unit,
     onSubmitStudentExercise: () -> Unit,
+    onEditExercise: (Exercise) -> Unit,
     onAddToWorkout: (Exercise) -> Unit,
+    onSaveTrainerExerciseToBank: (WorkoutExercise) -> Unit,
     onRemoveWorkoutItem: (Long) -> Unit,
+    onMoveWorkoutItem: (Long, Boolean) -> Unit,
     onImportTrainerWorkout: (String) -> Unit,
     onStartSelfWorkout: () -> Unit,
     onStartTrainerWorkout: () -> Unit
@@ -833,21 +983,30 @@ private fun LazyListScope.studentTrainingContent(
                     onDescriptionChange = onDescriptionChange,
                     repsInput = repsInput,
                     onRepsChange = onRepsChange,
+                    submitLabel = submitLabel,
                     onSubmit = onSubmitStudentExercise
                 )
             }
         }
 
-        items(state.exerciseBank) { exercise ->
+        items(exerciseBank) { exercise ->
             ExerciseBankEntryCard(
                 exercise = exercise,
                 actionLabel = UiStrings.ACTION_TO_WORKOUT,
-                onAction = { onAddToWorkout(exercise) }
+                onAction = { onAddToWorkout(exercise) },
+                onEdit = { onEditExercise(exercise) }
             )
         }
 
-        items(state.selfWorkout) { item ->
-            PlannedExerciseRow(item = item, onRemove = onRemoveWorkoutItem)
+        items(state.selfWorkout.size) { index ->
+            val item = state.selfWorkout[index]
+            PlannedExerciseRow(
+                item = item,
+                index = index,
+                totalCount = state.selfWorkout.size,
+                onRemove = onRemoveWorkoutItem,
+                onMove = onMoveWorkoutItem
+            )
         }
 
         item {
@@ -881,8 +1040,23 @@ private fun LazyListScope.studentTrainingContent(
                 Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
             }
         }
-        items(state.trainerWorkout) { item ->
-            PlannedExerciseRow(item = item, onRemove = onRemoveWorkoutItem)
+        items(state.trainerWorkout.size) { index ->
+            val item = state.trainerWorkout[index]
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                PlannedExerciseRow(
+                    item = item,
+                    index = index,
+                    totalCount = state.trainerWorkout.size,
+                    onRemove = onRemoveWorkoutItem,
+                    onMove = onMoveWorkoutItem
+                )
+                GreenButton(
+                    text = "Сохранить в мой банк",
+                    onClick = { onSaveTrainerExerciseToBank(item) },
+                    icon = Icons.Default.Add,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
         item {
             GreenButton(
@@ -915,6 +1089,7 @@ fun WorkoutSessionScreen(
     var timerRunning by rememberSaveable(sessionInstanceId) { mutableStateOf(false) }
     var sessionFinished by rememberSaveable(sessionInstanceId) { mutableStateOf(false) }
     var completionLogged by rememberSaveable(sessionInstanceId) { mutableStateOf(false) }
+    var showExitConfirmation by rememberSaveable(sessionInstanceId) { mutableStateOf(false) }
 
     LaunchedEffect(sessionFinished, total, sessionInstanceId) {
         if (sessionFinished && total > 0 && !completionLogged) {
@@ -1055,6 +1230,7 @@ fun WorkoutSessionScreen(
         }
 
         val current = items[currentIndex]
+        val currentDescription = current.description
         item {
             Card(
                 modifier = Modifier
@@ -1080,6 +1256,13 @@ fun WorkoutSessionScreen(
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp
                     )
+                    if (currentDescription.isNotBlank()) {
+                        Text(
+                            text = currentDescription,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 13.sp
+                        )
+                    }
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1106,15 +1289,44 @@ fun WorkoutSessionScreen(
                     }
 
                     GreenButton(
-                        text = if (timerRunning) "Идёт отсчёт..." else "Запустить отсчёт",
-                        onClick = { timerRunning = true },
-                        enabled = !timerRunning,
-                        icon = Icons.Default.PlayArrow,
+                        text = if (timerRunning) "Пауза" else "Возобновить отсчёт",
+                        onClick = { timerRunning = !timerRunning },
+                        icon = if (timerRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlineButton(
+                        text = "Закрыть режим тренировки",
+                        onClick = { showExitConfirmation = true },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
         }
+    }
+
+    if (showExitConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showExitConfirmation = false },
+            title = { Text("Точно выйти?") },
+            text = { Text("Прогресс тренировки будет сброшен") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showExitConfirmation = false
+                        onFinish()
+                    }
+                ) {
+                    Text("Выйти")
+                }
+            },
+            dismissButton = {
+                OutlineButton(
+                    text = "Отмена",
+                    onClick = { showExitConfirmation = false }
+                )
+            }
+        )
     }
 }
 
@@ -1138,9 +1350,12 @@ private fun TrainingScreenPreview() {
                 trainerWorkout = emptyList()
             ),
             onAddExercise = { _, _, _ -> },
+            onUpdateExercise = { _, _, _, _ -> },
             onAddToWorkout = {},
+            onSaveTrainerExerciseToBank = {},
             onAddToTrainerWorkout = {},
             onRemoveWorkoutItem = {},
+            onMoveWorkoutItem = { _, _ -> },
             onImportTrainerWorkout = {},
             onExportTrainerWorkout = {},
             onStartSelfWorkout = {},

@@ -45,15 +45,6 @@ interface DiplomDao {
     suspend fun getAchievements(): List<AchievementEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertChapters(items: List<StoryChapterEntity>)
-
-    @Query("SELECT * FROM story_chapter ORDER BY chapterNumber ASC")
-    fun observeChapters(): Flow<List<StoryChapterEntity>>
-
-    @Query("SELECT * FROM story_chapter ORDER BY chapterNumber ASC")
-    suspend fun getChapters(): List<StoryChapterEntity>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertWeeklyChallenge(entity: WeeklyChallengeEntity)
 
     @Query("SELECT * FROM weekly_challenge WHERE id = 0 LIMIT 1")
@@ -103,9 +94,6 @@ interface DiplomDao {
 
     @Query("DELETE FROM achievement")
     suspend fun clearAchievements()
-
-    @Query("DELETE FROM story_chapter")
-    suspend fun clearChapters()
 
     @Query("DELETE FROM weekly_challenge")
     suspend fun clearWeeklyChallenge()
