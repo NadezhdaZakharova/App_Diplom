@@ -1,15 +1,17 @@
 package com.example.diplom.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.example.diplom.R
 
 enum class AppDestinations(
-    val label: String,
+    @param:StringRes val labelRes: Int,
     val icon: ImageVector,
-    val contentDescription: String,
+    @param:StringRes val contentDescriptionRes: Int,
 ) {
-    TRAINING(UiStrings.NAV_TRAINING_TAB, Icons.Default.Build, UiStrings.NAV_TRAINING_A11Y),
-    REWARDS(UiStrings.NAV_REWARDS_TAB, Icons.Default.Star, UiStrings.NAV_REWARDS_A11Y),
+    TRAINING(R.string.nav_training_tab, Icons.Default.Build, R.string.nav_training_a11y),
+    REWARDS(R.string.nav_rewards_tab, Icons.Default.Star, R.string.nav_rewards_a11y),
 }

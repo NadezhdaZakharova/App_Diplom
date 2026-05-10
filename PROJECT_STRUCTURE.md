@@ -1,91 +1,112 @@
 # PROJECT_STRUCTURE
 
-Документ фиксирует текущую архитектуру проекта `App_Diplom` в формате  
-`слой -> файлы -> ответственность -> зависимости`.
+**Каноническое описание структуры каталогов и слоёв** — актуальная карта модулей и файлов.  
+Краткое описание назначения приложения и пользовательских сценариев — в **`PROJECT_DESCRIPTION.md`**.
 
-## 1. Архитектурная схема
-
-Проект организован по слоям:
-
-- `ui` (presentation): Compose-экраны, состояние интерфейса, пользовательские сценарии.
-- `domain`: бизнес-правила, use case, контракты репозиториев, модели.
-- `data`: Room-хранилище, DAO, реализации репозиториев, сенсорные источники.
-- `app/di/work/worker`: entry point приложения, DI через Hilt, фоновая обработка.
-- `core`: общие утилиты.
-
-Поток зависимостей:
-
-`ui -> domain/repository interfaces -> data implementations -> Room`
-
-`worker -> repositories -> data/local`
+Документ в формате: `слой → файлы → ответственность → зависимости`.
 
 ---
 
-## 2. Таблица по слоям
+## Оглавление
 
-| Слой | Файлы/разделы | Ответственность | Основные зависимости |
-|---|---|---|---|
-| `core` | `core/DateUtils.kt` | Утилиты дат (today/week start и т.д.) | Kotlin stdlib, `java.time` |
-| `domain` (engine) | `domain/GamificationEngine.kt`, `domain/GamificationConstants.kt`, `domain/GamificationSeeds.kt`, `domain/GamificationStreaks.kt`, `domain/PlayerProgress.kt` | Ядро геймификации: XP, уровни, streak, weekly challenge, достижения | Доменные/локальные модели, `java.time` |
-| `domain/model` | `DailyStats.kt`, `PlayerProfile.kt`, `Achievement.kt`, `WeeklyChallenge.kt`, `AppUserMode.kt`, `Exercise.kt`, `WorkoutExercise.kt`, `StudentRewardsStats.kt` | Чистые предметные модели | Без Android-зависимостей |
-| `domain/repository` | `ActivityRepository.kt`, `GamificationRepository.kt`, `TrainingRepository.kt` | Контракты доступа к данным для `ViewModel`/use case | `kotlinx.coroutines.flow`, domain models |
-| `domain/usecase` | `AddStepsUseCase.kt`, `BootstrapGameUseCase.kt` | Прикладные бизнес-сценарии | `domain/repository` |
-| `data/local` | `DiplomDatabase.kt`, `DiplomDao.kt`, `*Entity.kt` | Схема Room БД, таблицы и запросы DAO | Room (`androidx.room`) |
-| `data/repository` | `ActivityRepositoryImpl.kt`, `GamificationRepositoryImpl.kt`, `TrainingRepositoryImpl.kt` | Реализация контрактов репозиториев, маппинг entity <-> domain, JSON импорт/экспорт тренировки | `data/local`, `domain`, coroutines Flow, JSON |
-| `data/sensor` | `StepCounterManager.kt` | Интеграция с шагомером Android | Android Sensor API |
-| `ui` (state/app shell) | `MainViewModel.kt`, `MainUiState.kt`, `DiplomApp.kt`, `AppDestinations.kt`, `UserModeUi.kt`, `UiStrings.kt` | Оркестрация состояния и навигации, действия пользователя, связка экранов с репозиториями | Compose, Lifecycle ViewModel, Coroutines Flow |
-| `ui/screens` | `TrainingScreens.kt`, `RewardsScreen.kt` | Экранная логика тренировок/наград, таймер с паузой/выходом, импорт/экспорт и отправка тренировки | Compose Material3 |
-| `ui/components` | `AccessibleTextButton.kt` | Переиспользуемые UI-компоненты | Compose |
-| `ui/theme` | `Color.kt`, `Theme.kt`, `Type.kt` | Тема и дизайн-система | Compose Material3 |
-| `app` | `MainActivity.kt`, `DiplomApplication.kt` | Entry point приложения, запуск UI, lifecycle-логика шагомера, инициализация Hilt | AndroidX Activity, Hilt |
-| `di` | `di/DatabaseModule.kt`, `di/RepositoryModule.kt` | Hilt-модули зависимостей (Room + repositories) | Hilt, Room |
-| `work` | `work/DailyWorkScheduler.kt` | Планирование periodic задач | WorkManager |
-| `worker` | `worker/DailyRecalculateWorker.kt` | Фоновый пересчет геймификации | WorkManager, repositories |
-| `tests` | `src/test/...`, `src/androidTest/...` | Unit/instrumented тесты | JUnit, AndroidX Test |
+1. [Архитектурная схема](#1-архитектурная-схема)  
+2. [Таблица по слоям](#2-таблица-по-слоям)  
+3. [Разделение ответственности](#3-разделение-ответственности)  
+4. [Границы зависимостей](#4-границы-зависимостей)  
+5. [Технические примечания](#5-технические-примечания)
+
+---
+
+## 1. Архитектурная схема
+
+**Gradle-модули** (физическое разбиение):
+
+| Модуль | Содержимое | Зависимости |
+|--------|------------|-------------|
+| **`:domain`** | JVM Kotlin: `domain/*`, `core/DateUtils`, модели `MainUiCoreState` / `CoreMainUiInputs`, **use case** (в т.ч. **`ObserveCoreMainUiInputsUseCase`** — единая подписка на `Flow` для главного экрана) | Coroutines, `javax.inject` |
+| **`:data`** | Android Library: Room, DAO, реализации репозиториев, сенсор, уведомления, импорт, Hilt-модули `DatabaseModule` / `RepositoryModule` / `StepMilestoneNotifierModule`, ресурсы строк для уведомлений модуля | `:domain`, Room, Hilt, Work (через app при необходимости) |
+| **`:app`** | Compose UI, `MainActivity`, `MainViewModel`, WorkManager worker/scheduler, `BootstrapGameUseCaseEntryPoint`, манифест, `res` приложения | `:domain`, `:data` |
+
+Поток зависимостей:
+
+`:app` → `:domain` + `:data`  `:data` → `:domain`  `:domain` без Android и без `:data`
+
+---
+
+## 2. Таблица по слоям (пакеты внутри модулей)
+
+| Слой | Файлы / разделы | Ответственность | Основные зависимости |
+|------|-----------------|-----------------|----------------------|
+| `core` (`:domain`) | `core/DateUtils.kt` | Утилиты дат | `java.time` |
+| `domain` (engine) | `GamificationEngine.kt`, `GamificationConstants.kt`, … | Ядро геймификации | Модели домена |
+| `domain` | `StudentRewardsCalculator.kt`, `ExerciseTitleKeys.kt`, … | Награды, ключи, контракты | Без Android |
+| `domain/model` | `DailyStats.kt`, … | Модели | — |
+| `domain/repository` | интерфейсы репозиториев | Контракты | Flow |
+| `domain/usecase` | все `*UseCase`, в т.ч. **`ObserveCoreMainUiInputsUseCase`** | Команды и **наблюдение** данных для UI; **MainViewModel** не держит репозиториев | `domain/repository` |
+| `domain` | `MainUiCoreState.kt` | DTO потока `CoreMainUiInputs` для сборки `MainUiState` | Модели |
+| `data/local` | `DiplomDatabase.kt` (v**9**), миграции, DAO, entities | Room | KSP, схемы в **`data/schemas`** |
+| `data/repository` | `*RepositoryImpl.kt`, JSON, парсеры | Реализации | `:domain`, Room |
+| `data/notification` | `AndroidStepMilestoneNotifier.kt` | Уведомления (`com.example.diplom.data.R`) | Android |
+| `data/importing`, `data/sensor` | препроцессор, шагомер | Импорт, сенсор | Android |
+| `data/di` | `DatabaseModule`, `RepositoryModule`, `StepMilestoneNotifierModule` | Hilt-связки | `:domain` |
+| `ui` (`:app`) | `MainViewModel.kt`, `MainUiState.kt`, … | UI, только use case + **`ObserveCoreMainUiInputsUseCase()`** для потока состояния | Compose, Hilt |
+| `ui/screens` | `TrainingScreen.kt`, `WorkoutSessionScreen.kt`, `TrainingUiPrimitives.kt`, `TrainingExerciseCards.kt`, `TrainerTrainingSection.kt`, `StudentTrainingSection.kt`, `TrainerJsonExportBlock.kt`, `TrainingTypes.kt`, `TrainingDurationValidation.kt`, `RewardsScreen.kt` | Тренировки: у ученика аккордеон «Самостоятельная» / «От тренера» (одна секция открыта или обе свёрнуты); сворачиваемая карточка **цели по шагам** и краткое **«Сохранено»** после применения; тренер — план и экспорт. Награды: **встроенная карточка** предложения конвертировать шаги в тренировку **над блоком «Активность»**; баннер при достижении цели; **линейный прогресс по дням** относительно текущей `dailyGoal`. Сессия — таймер, пауза | Compose Material3 |
+| `ui/components` | `AccessibleTextButton.kt` | Переиспользуемые элементы | Compose |
+| `ui/theme` | `Color.kt`, `Theme.kt`, `Type.kt` | Тема | Material 3 |
+| корень пакета | `MainActivity.kt`, `DiplomApplication.kt` | Entry point, share-intent JSON, шаги → ViewModel | Activity, Hilt |
+| `di` (`:app`) | `BootstrapGameUseCaseEntryPoint.kt` | Hilt **EntryPoint** для **BootstrapGameUseCase** из `DailyRecalculateWorker` | Hilt |
+| `work` / `worker` (`:app`) | `DailyWorkScheduler.kt`, `DailyRecalculateWorker.kt` | WorkManager | `:data` / use case через EntryPoint |
+| `tests` | `:domain` — `GamificationEngineTest`; `:data` — `TrainerWorkoutImportPreprocessorImplTest`, `TrainerWorkoutPlannedSecondsParserTest` (тот же модуль, что и реализация); `:app` — при необходимости лёгкий `ExampleUnitTest`, **`androidTest`** / `SmokeInstrumentedTest` | Unit / instrumented | JUnit, Compose UI Test |
 
 ---
 
 ## 3. Разделение ответственности
 
-### UI слой (`ui`)
+### UI (`ui`)
+
 - Работает с `StateFlow` и событиями пользователя.
-- Не содержит SQL/DAO-логики.
-- Вызывает методы `ViewModel`, дальше — репозитории/use case.
+- Не содержит SQL / DAO.
+- Вызывает методы `ViewModel` → **только use case** (в т.ч. **`ObserveCoreMainUiInputsUseCase`** для объединённого `Flow` состояния).
 
-### Domain слой (`domain`)
-- Содержит бизнес-правила и интерфейсы.
+### Domain (`domain`)
+
+- Бизнес-правила и интерфейсы.
 - Не зависит от Android UI, Compose и Room.
+- `StepMilestoneNotifier` — контракт; реализация в `data/notification`.
 
-### Data слой (`data`)
-- Отвечает за хранение и выдачу данных.
-- Инкапсулирует Room/DAO и детали JSON.
-- Реализует интерфейсы из `domain/repository`.
+### Data (`data`)
 
-### Infrastructure (`app`, `di`, `work`, `worker`)
-- Инициализирует зависимости (Hilt).
-- Управляет background-процессами через WorkManager.
+- Хранение и выдача данных, Room / DAO, детали JSON.
+- Реализует интерфейсы `domain/repository`.
+
+### Infrastructure (`:app`: `MainActivity`, `DiplomApplication`, `di`, `work`, `worker`)
+
+- Точка входа приложения и Hilt **EntryPoint** для Worker.
+- Фоновые задачи через WorkManager.
+- Привязки Room / репозиториев к интерфейсам — в модуле **`:data`** (`data/di`).
 
 ---
 
 ## 4. Границы зависимостей
 
-- `ui` знает только про модели/контракты и `ViewModel`.
-- `domain` не знает про Android framework.
-- `data` знает про `domain` и Android persistence layer.
-- `worker` использует репозитории и не зависит от UI.
-
-Это упрощает поддержку, тестирование и дальнейшее расширение.
+- `ui` знает модели / контракты и `ViewModel`.
+- `domain` не знает Android framework (кроме типов в контрактах при необходимости).
+- `data` знает `domain` и Android (persistence, notifications).
+- `worker` не зависит от UI.
 
 ---
 
-## 5. Текущие технические примечания
+## 5. Технические примечания
 
-- DI через **Hilt** (`DiplomApplication`, `di/*`, `@HiltViewModel`).
-- Сборка на AGP 9 + Compose plugin + KSP.
-- Навигация реализована состоянием (`NavigationSuiteScaffold`) без `NavHost`.
-- Входящие deep link/share-target фильтры из `AndroidManifest` удалены (по текущему scope проекта).
-- Отправка сформированной тренировки наружу через `Intent.ACTION_SEND` сохранена.
-- В экране сессии тренировки есть:
-  - пауза/возобновление таймера;
-  - подтверждаемое закрытие режима с предупреждением о сбросе прогресса.
-- Сетевой слой (`Retrofit`) в проект не внедрен.
+- **Core library desugaring** (`desugar_jdk_libs`): `java.time` на **minSdk 24**.
+- DI: **Hilt** (`DiplomApplication`, `di/*`, `@HiltViewModel`).
+- Сборка: AGP + Compose Compiler + **KSP** (Room).
+- Навигация: **`NavigationSuiteScaffold`**, без `NavHost`.
+- Room: **`fallbackToDestructiveMigration(false)`**, цепочка миграций в `DiplomDatabaseMigrations.kt`, версия БД **9**.
+- **Share Target** в `MainActivity`: приём JSON через `ACTION_SEND` (`text/plain`).
+- Строки: в **`:app`** — UI (`values/strings.xml`, `values-en/strings.xml`); тексты **канала и уведомлений по шагам** — только в **`:data`** (`data/src/main/res/...`), без дублирования в приложении.
+- Модуль **`:data`**: отдельный **`consumer-rules.pro`** не подключается; при обфускации release — **`app/proguard-rules.pro`**.
+- Разрешения: `ACTIVITY_RECOGNITION`, `POST_NOTIFICATIONS` (API 33+).
+- Лаунчер: `AndroidManifest` указывает `@mipmap/ic_launcher` / `ic_launcher_round`; в исходниках — adaptive **API 26+**, для более старых API иконки **генерируются при сборке** (webp в APK).
+- Каталог **`.kotlin/`** в корне репозитория — служебный кэш Kotlin/IDE (в репозиторий обычно не коммитится); пустые пакеты в `src` после удаления классов на диске не оставлять — иначе они «висят» в дереве проекта.
+- **Git**: в корне — **`.gitattributes`** (для исходников и конфигов в основном **LF**; для `*.bat` — **CRLF**; для **`.idea/`** — **`-text`**, чтобы не навешивать глобальное `eol=lf` на XML студии). В **`.gitignore`** указано **`**/build/`**, чтобы каталоги сборки всех модулей (`app/build`, `data/build`, …) не попадали в индекс и не ломали **`git status`** на Windows из‑за слишком длинных путей внутри `build/.transforms/`. В этом репозитории локально задано **`core.autocrlf=false`**, чтобы не дублировать нормализацию с атрибутами. При смене правил окончаний строк один раз можно выполнить **`git add --renormalize .`** и зафиксировать отдельным коммитом.

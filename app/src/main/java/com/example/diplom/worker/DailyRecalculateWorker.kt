@@ -3,8 +3,8 @@ package com.example.diplom.worker
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.example.diplom.data.local.DiplomDatabase
-import com.example.diplom.data.repository.GamificationRepositoryImpl
+import com.example.diplom.di.BootstrapGameUseCaseEntryPoint
+import dagger.hilt.android.EntryPointAccessors
 
 class DailyRecalculateWorker(
     appContext: Context,
@@ -12,10 +12,11 @@ class DailyRecalculateWorker(
 ) : CoroutineWorker(appContext, workerParams) {
     override suspend fun doWork(): Result {
         return runCatching {
-            val dao = DiplomDatabase.getInstance(applicationContext).dao()
-            val repository = GamificationRepositoryImpl(dao)
-            repository.seedIfEmpty()
-            repository.recalculate()
+            val bootstrap = EntryPointAccessors.fromApplication(
+                applicationContext,
+                BootstrapGameUseCaseEntryPoint::class.java
+            ).bootstrapGameUseCase()
+            bootstrap()
         }.fold(
             onSuccess = { Result.success() },
             onFailure = { Result.retry() }

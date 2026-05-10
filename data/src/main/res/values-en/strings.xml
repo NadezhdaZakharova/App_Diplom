@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_channel_step_milestones_name">Steps and goals</string>
+    <string name="notification_channel_step_milestones_desc">Daily step goal reached and activity bonus</string>
+    <string name="notification_step_daily_goal_title">Step goal</string>
+    <string name="notification_step_daily_goal_text">You reached your daily step goal.</string>
+    <string name="notification_step_bonus_title">Activity bonus</string>
+    <string name="notification_step_bonus_text">You exceeded your step goal by 1.5× and earned a bonus.</string>
+</resources>

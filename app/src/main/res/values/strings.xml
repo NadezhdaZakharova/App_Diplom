@@ -1,3 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Diplom</string>
+
+    <!-- Режим приложения -->
+    <string name="pick_mode_title">Выберите режим</string>
+    <string name="role_student">🎓 Ученик</string>
+    <string name="role_trainer">🏋️ Тренер</string>
+    <string name="mode_student_description">Тренируйся по готовым программам</string>
+    <string name="mode_trainer_description">Создавай тренировки для других</string>
+    <string name="mode_title_student">🎓 Режим ученика</string>
+    <string name="mode_title_trainer">🏋️ Режим тренера</string>
+    <string name="mode_chip_student">Режим ученика</string>
+    <string name="mode_chip_trainer">Режим тренера</string>
+    <string name="switch_mode">🔄 Сменить режим</string>
+    <string name="switch_mode_a11y">Переключить на режим %1$s</string>
+
+    <!-- Навигация -->
+    <string name="nav_training_tab">💪 Тренировка</string>
+    <string name="nav_rewards_tab">🏆 Награды</string>
+    <string name="nav_training_a11y">Вкладка «Тренировка»: план и запуск тренировок</string>
+    <string name="nav_rewards_a11y">Вкладка «Награды»: достижения и активность</string>
+
+    <!-- ACTIVITY_RECOGNITION -->
+    <string name="activity_recognition_rationale_title">Шаги и активность</string>
+    <string name="activity_recognition_rationale_body">Чтобы считать шаги и отображать активность в приложении, нужно разрешение «Физическая активность». Вы можете отказаться — приложение будет работать, но без учёта шагов.</string>
+    <string name="activity_recognition_allow">Разрешить</string>
+    <string name="activity_recognition_not_now">Не сейчас</string>
+    <string name="activity_recognition_denied_title">Разрешение не выдано</string>
+    <string name="activity_recognition_denied_can_ask_again">Шаги не будут учитываться. Вы можете запросить разрешение снова или открыть настройки приложения.</string>
+    <string name="activity_recognition_denied_settings_only">Чтобы учитывать шаги, включите разрешение «Физическая активность» в настройках приложения.</string>
+    <string name="activity_recognition_try_again">Запросить снова</string>
+    <string name="activity_recognition_open_settings">Открыть настройки</string>
+    <string name="activity_recognition_got_it">Понятно</string>
+
+    <!-- Импорт / экспорт (ViewModel) -->
+    <string name="import_trainer_success">Тренировка от тренера загружена.</string>
+    <string name="import_trainer_replaces_plan">Текущий план «От тренера» на сегодня заменён.</string>
+    <string name="import_from_share_success">Тренировка из «Поделиться» загружена. Открыта вкладка «От тренера».</string>
+    <string name="import_unknown_error">Импорт невозможен: неизвестная ошибка.</string>
+    <string name="export_trainer_json_ready">Файл тренировки для ученика готов — скопируйте JSON ниже и отправьте</string>
+    <string name="json_copied">JSON скопирован в буфер обмена</string>
+
+    <!-- Экран тренировок (частичная вынос в ресурсы + a11y) -->
+    <string name="trainer_plan_heading">📋 План для ученика</string>
+    <string name="student_today_heading">🔥 Тренировка на сегодня</string>
+    <string name="action_for_student">Для ученика</string>
+    <string name="action_to_workout">В тренировку</string>
+    <string name="json_for_student">JSON для ученика</string>
+    <string name="add_own_exercise">➕ Добавить упражнение</string>
+    <string name="remove_from_list_a11y">Удалить упражнение из списка тренировки</string>
+    <string name="bank_show_a11y">Показать банк упражнений</string>
+    <string name="bank_hide_a11y">Скрыть банк упражнений</string>
+    <string name="add_exercise_form_a11y">Показать или скрыть форму добавления своего упражнения</string>
+    <string name="a11y_move_item_up">Поднять упражнение выше в списке</string>
+    <string name="a11y_move_item_down">Опустить упражнение ниже в списке</string>
+    <string name="a11y_section_header_icon">Значок раздела</string>
+    <string name="a11y_exercise_type_icon">Тип упражнения</string>
+    <string name="a11y_share_export_block">Поделиться тренировкой</string>
+    <string name="a11y_expand_description">Развернуть описание</string>
+    <string name="a11y_collapse_description">Свернуть описание</string>
+    <string name="a11y_timer_icon">Таймер упражнения</string>
+    <string name="a11y_mode_badge_student">Режим ученика</string>
+    <string name="a11y_mode_badge_trainer">Режим тренера</string>
+
+    <!-- Награды -->
+    <string name="rewards_week_top_label">Раз выполнено на неделе</string>
+    <string name="rewards_week_top_label_with_count">%1$s: %2$d</string>
+    <string name="rewards_your_progress_title">🔥 Твой прогресс</string>
+    <string name="rewards_on_track_subtitle">Ты на пути к лучшей форме 💪</string>
+    <string name="rewards_step_goal_met_banner">Цель по шагам выполнена</string>
+    <string name="rewards_activity_heading">📊 Активность</string>
+    <string name="rewards_steps_line">Шагов за сегодня: %1$d</string>
+    <string name="rewards_distance_km">Дистанция за сегодня: %1$.2f км</string>
+    <string name="rewards_day_steps_count">%1$d шагов</string>
+    <string name="rewards_week_exercise_heading">🏆 Упражнение недели</string>
+    <string name="rewards_week_top_empty">Пока нет данных — начни тренироваться 💪</string>
+    <string name="rewards_weekly_marathon_heading">🔥 Недельный марафон</string>
+    <string name="rewards_weekly_marathon_complete">Ты тренировалась каждый день недели 🎉</string>
+    <string name="rewards_weekly_marathon_progress">Дни тренировок: %1$d / 7</string>
+    <string name="rewards_monthly_heading">📅 Тренировки в месяце</string>
+    <string name="rewards_monthly_count">%1$d / %2$d</string>
+    <string name="rewards_streak_heading">🔥 Серия тренировок</string>
+    <string name="rewards_streak_current">Текущая серия: %1$d дней</string>
+    <string name="rewards_streak_thresholds">Пороги: %1$s 3  %2$s 7  %3$s 14  %4$s 30</string>
+    <string name="rewards_streak_cell_done">✅</string>
+    <string name="rewards_streak_cell_todo">⬜</string>
+    <string name="rewards_first_week_heading">🚀 Первая неделя</string>
+    <string name="rewards_first_week_goal">Сделай минимум %1$d тренировок за первые 7 дней</string>
+    <string name="rewards_first_week_progress">Прогресс: %1$d / %2$d</string>
+    <string name="rewards_first_week_done">Цель достигнута 🎉</string>
+    <string name="rewards_first_week_continue">Продолжай 💪</string>
+    <string name="rewards_variety_heading">🎯 Разнообразие</string>
+    <string name="rewards_variety_goal">Сделай %1$d разных упражнений за неделю</string>
+    <string name="rewards_variety_progress">Прогресс: %1$d / %2$d</string>
+    <string name="rewards_variety_done">Выполнено ✅</string>
+    <string name="rewards_variety_hint">Добавь новые упражнения</string>
+    <string name="rewards_trainer_first_heading">💪 Первая тренировка от тренера</string>
+    <string name="rewards_trainer_done">Ты завершила тренировку по плану тренера ✅</string>
+    <string name="rewards_trainer_todo">Импортируй тренировку от тренера и выполни её</string>
+    <string name="rewards_steps_streak_hint">При превышении цели по шагам в 1,5 раза вы можете сохранить серию тренировок без выполнения упражнений сегодня.</string>
+    <string name="steps_conversion_title">Конвертировать шаги в опыт тренировки?</string>
+    <string name="steps_conversion_message">Засчитывается выполнение тренировки за сегодня.</string>
+    <string name="steps_conversion_yes">Да</string>
+    <string name="steps_conversion_no">Нет</string>
+
+    <!-- Предустановленные упражнения (ключи в БД) -->
+    <string name="exercise_preset_squats">Приседания</string>
+    <string name="exercise_preset_pushups">Отжимания</string>
+    <string name="exercise_preset_plank">Планка</string>
+
+    <!-- Сессия тренировки (ViewModel + UI) -->
+    <string name="workout_session_title_trainer">Тренировка от тренера</string>
+    <string name="workout_session_title_self">Самостоятельная тренировка</string>
+    <string name="share_workout_chooser_title">Отправить тренировку</string>
+
+    <!-- Тренировки: формы и тексты -->
+    <string name="add_exercise_bank_heading">Добавить упражнение в банк</string>
+    <string name="duration_blank_error">Укажите положительное ненулевое число секунд.</string>
+    <string name="duration_invalid_error">Некорректный ввод: нужно положительное ненулевое целое число секунд.</string>
+    <string name="exercise_field_title">Название упражнения</string>
+    <string name="exercise_field_description">Описание</string>
+    <string name="exercise_field_duration_seconds">Время выполнения по умолчанию, с</string>
+    <string name="bank_submit_save">Сохранить</string>
+    <string name="bank_submit_saved">Сохранено</string>
+    <string name="bank_submit_add">Добавить упражнение</string>
+    <string name="exercise_bank_card_edit">Изменить</string>
+    <string name="expand_description_label">Подробнее</string>
+    <string name="collapse_description_label">Свернуть</string>
+    <string name="seconds_suffix_format">%1$d с.</string>
+    <string name="exercise_bank_title">Банк упражнений</string>
+    <string name="hide">Скрыть</string>
+    <string name="show">Показать</string>
+    <string name="build_trainer_workout">Сформировать тренировку</string>
+    <string name="trainer_json_hint">После нажатия JSON появится ниже — скопируйте и отправьте ученику.</string>
+    <string name="copy_json">Копировать JSON</string>
+    <string name="send">Отправить</string>
+    <string name="student_section_self">Самостоятельная</string>
+    <string name="student_section_trainer">От тренера</string>
+    <string name="start_workout">Начать тренировку</string>
+    <string name="trainer_import_json_label">JSON тренировки от тренера</string>
+    <string name="import_action">Импортировать</string>
+    <string name="save_to_my_bank">Сохранить в мой банк</string>
+    <string name="start_trainer_workout">Начать тренировку от тренера</string>
+    <string name="student_step_goal_heading">Цель по шагам на день</string>
+    <string name="student_step_goal_label">Шагов (2000–30000)</string>
+    <string name="student_step_goal_apply">Сохранить цель</string>
+    <string name="student_step_goal_saved">Сохранено</string>
+    <string name="student_step_goal_toggle_expand_a11y">Развернуть цель по шагам</string>
+    <string name="student_step_goal_toggle_collapse_a11y">Свернуть цель по шагам</string>
+    <string name="student_step_goal_invalid">Введите целое число от 2000 до 30000.</string>
+    <!-- Временно: отладка шагов -->
+    <string name="workout_progress_format">Выполнено: %1$d из %2$d</string>
+    <string name="workout_progress_percent">%1$d%%</string>
+    <string name="workout_empty_list">На сегодня нет упражнений.</string>
+    <string name="back">Назад</string>
+    <string name="workout_completed_title">Тренировка завершена!</string>
+    <string name="workout_completed_count">Выполнено %1$d из %2$d упражнений</string>
+    <string name="back_to_workouts">К списку тренировок</string>
+    <string name="current_exercise">Текущее упражнение</string>
+    <string name="timer_seconds_format">%1$d сек</string>
+    <string name="pause">Пауза</string>
+    <string name="start_timer">Запустить</string>
+    <string name="close_workout_mode">Закрыть режим тренировки</string>
+    <string name="exit_workout_title">Точно выйти?</string>
+    <string name="exit_workout_message">Прогресс тренировки будет сброшен</string>
+    <string name="exit_confirm">Выйти</string>
+    <string name="cancel">Отмена</string>
 </resources>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_channel_step_milestones_name">Шаги и цели</string>
+    <string name="notification_channel_step_milestones_desc">Достижение дневной цели по шагам и бонус за активность</string>
+    <string name="notification_step_daily_goal_title">Цель по шагам</string>
+    <string name="notification_step_daily_goal_text">Дневная цель по шагам достигнута.</string>
+    <string name="notification_step_bonus_title">Бонус за активность</string>
+    <string name="notification_step_bonus_text">Вы превысили цель по шагам в 1,5 раза и получили бонус.</string>
+</resources>

@@ -1,21 +1,25 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# R8 / ProGuard — release (см. app/build.gradle.kts isMinifyEnabled)
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Полезные стектрейсы в Play Vitals
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# --- Kotlin ---
+-keepattributes RuntimeVisibleAnnotations,AnnotationDefault
+-keepclassmembers class kotlin.Metadata { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# --- Hilt (дополнительно к consumer rules из artifact) ---
+-dontwarn com.google.errorprone.annotations.**
+
+# --- Room: БД, DAO (генерируемые классы) ---
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *
+-dontwarn androidx.room.paging.**
+
+# --- WorkManager ---
+-keep class com.example.diplom.worker.DailyRecalculateWorker { *; }
+
+# --- Hilt EntryPoint для Worker ---
+-keep interface com.example.diplom.di.BootstrapGameUseCaseEntryPoint { *; }
+
+# --- JSON (org.json) при обфускации вызовов через рефлексию не используется; при необходимости расширить ---

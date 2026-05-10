@@ -23,5 +23,7 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Diplom"
+include(":domain")
+include(":data")
 include(":app")
  

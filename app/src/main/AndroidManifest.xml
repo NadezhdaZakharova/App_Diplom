@@ -3,7 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Резервное копирование: только diplom.db (+ WAL/SHM), без WorkManager — см. res/xml/backup_rules.xml -->
     <application
         android:name=".DiplomApplication"
         android:allowBackup="true"

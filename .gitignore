@@ -1,15 +1,22 @@
+# Разрешаем корневой и app-модуль в репозитории — иначе Android Studio не видит :app и не читает applicationId.
 *.iml
+!Diplom.iml
+!app/app.iml
 .gradle
 /local.properties
 /.idea/caches
 /.idea/libraries
-/.idea/modules.xml
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
 .DS_Store
+# Сборка Gradle: только `/build` не покрывает `app/build`, `data/build`, `domain/build`.
 /build
+**/build/
 /captures
 .externalNativeBuild
 .cxx
 local.properties
+keystore.properties
+*.jks
+*.keystore

@@ -13,16 +13,22 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.diplom.ui.components.AccessibleTextButton
@@ -97,7 +103,7 @@ private fun ModeSelectionScreen(
     ) {
 
         Text(
-            text = UiStrings.PICK_MODE_TITLE,
+            text = stringResource(R.string.pick_mode_title),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
@@ -106,9 +112,9 @@ private fun ModeSelectionScreen(
 
         // УЧЕНИК
         ModeCard(
-            title = UiStrings.ROLE_STUDENT,
-            description = "Тренируйся по готовым программам",
-            imageRes = R.drawable.trainer,
+            title = stringResource(R.string.role_student),
+            description = stringResource(R.string.mode_student_description),
+            imageRes = R.drawable.student,
             onClick = onStudent
         )
 
@@ -116,9 +122,9 @@ private fun ModeSelectionScreen(
 
         // ТРЕНЕР
         ModeCard(
-            title = UiStrings.ROLE_TRAINER,
-            description = "Создавай тренировки для других",
-            imageRes = R.drawable.student,
+            title = stringResource(R.string.role_trainer),
+            description = stringResource(R.string.mode_trainer_description),
+            imageRes = R.drawable.trainer,
             onClick = onTrainer
         )
     }
@@ -178,8 +184,21 @@ private fun MainScaffold(
     visibleDestinations: List<AppDestinations>,
     viewModel: MainViewModel
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    LaunchedEffect(uiState.importNotificationToken) {
+        val notification = uiState.importNotification ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(
+            message = notification.toImportTransferMessage(context),
+            duration = SnackbarDuration.Long
+        )
+    }
+
+    PostNotificationsPermissionEffect()
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -197,12 +216,13 @@ private fun MainScaffold(
                         )
                         AccessibleTextButton(
                             onClick = { viewModel.setUserMode(uiState.userMode.toggle()) },
-                            contentDescription = UiStrings.switchModeToA11y(
+                            contentDescription = stringResource(
+                                R.string.switch_mode_a11y,
                                 uiState.userMode.toggle().roleLabel()
                             )
                         ) {
                             Text(
-                                UiStrings.SWITCH_MODE,
+                                stringResource(R.string.switch_mode),
                                 style = MaterialTheme.typography.labelMedium
                             )
                         }
@@ -211,56 +231,62 @@ private fun MainScaffold(
             )
         }
     ) { scaffoldPadding ->
-        NavigationSuiteScaffold(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(scaffoldPadding),
-            navigationSuiteItems = {
-                visibleDestinations.forEach { dest ->
-                    item(
-                        icon = {
-                            Icon(
-                                dest.icon,
-                                contentDescription = dest.contentDescription
+        CompositionLocalProvider(LocalAppSnackbarHostState provides snackbarHostState) {
+            NavigationSuiteScaffold(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(scaffoldPadding),
+                navigationSuiteItems = {
+                    visibleDestinations.forEach { dest ->
+                        item(
+                            icon = {
+                                Icon(
+                                    dest.icon,
+                                    contentDescription = stringResource(dest.contentDescriptionRes)
+                                )
+                            },
+                            label = { Text(stringResource(dest.labelRes)) },
+                            selected = dest == nav.currentDestination,
+                            onClick = { viewModel.setMainDestination(dest) }
+                        )
+                    }
+                }
+            ) {
+                when (nav.currentDestination) {
+                    AppDestinations.TRAINING -> TrainingScreen(
+                        state = uiState,
+                        modifier = Modifier.fillMaxSize(),
+                        onAddExercise = viewModel::addExercise,
+                        onUpdateExercise = viewModel::updateExercise,
+                        onConsumedOpenStudentTrainerSection = viewModel::consumeOpenStudentTrainerSectionRequest,
+                        onAddToWorkout = viewModel::addToWorkout,
+                        onAddToTrainerWorkout = viewModel::addToTrainerWorkout,
+                        onSaveTrainerExerciseToBank = { item ->
+                            viewModel.addExercise(
+                                title = item.title,
+                                description = item.description,
+                                defaultDurationSeconds = item.plannedReps
                             )
                         },
-                        label = { Text(dest.label) },
-                        selected = dest == nav.currentDestination,
-                        onClick = { viewModel.setMainDestination(dest) }
+                        onRemoveWorkoutItem = viewModel::removeWorkoutItem,
+                        onMoveWorkoutItem = viewModel::moveWorkoutItem,
+                        onImportTrainerWorkout = viewModel::importTrainerWorkout,
+                        onExportTrainerWorkout = viewModel::exportTrainerWorkout,
+                        onStartSelfWorkout = {
+                            viewModel.startSelfWorkoutSession(uiState.selfWorkout)
+                        },
+                        onStartTrainerWorkout = {
+                            viewModel.startTrainerWorkoutSession(uiState.trainerWorkout)
+                        },
+                        onSetDailyGoal = viewModel::setDailyGoal
+                    )
+                    AppDestinations.REWARDS -> RewardsAndStatsScreen(
+                        state = uiState,
+                        modifier = Modifier.fillMaxSize(),
+                        onConfirmStepsConversion = viewModel::confirmStepsToWorkoutConversion,
+                        onDismissStepsConversion = viewModel::declineStepsToWorkoutConversion
                     )
                 }
-            }
-        ) {
-            when (nav.currentDestination) {
-                AppDestinations.TRAINING -> TrainingScreen(
-                    state = uiState,
-                    modifier = Modifier.fillMaxSize(),
-                    onAddExercise = viewModel::addExercise,
-                    onUpdateExercise = viewModel::updateExercise,
-                    onAddToWorkout = viewModel::addToWorkout,
-                    onAddToTrainerWorkout = viewModel::addToTrainerWorkout,
-                    onSaveTrainerExerciseToBank = { item ->
-                        viewModel.addExercise(
-                            title = item.title,
-                            description = item.description,
-                            reps = item.plannedReps
-                        )
-                    },
-                    onRemoveWorkoutItem = viewModel::removeWorkoutItem,
-                    onMoveWorkoutItem = viewModel::moveWorkoutItem,
-                    onImportTrainerWorkout = viewModel::importTrainerWorkout,
-                    onExportTrainerWorkout = viewModel::exportTrainerWorkout,
-                    onStartSelfWorkout = {
-                        viewModel.startSelfWorkoutSession(uiState.selfWorkout)
-                    },
-                    onStartTrainerWorkout = {
-                        viewModel.startTrainerWorkoutSession(uiState.trainerWorkout)
-                    }
-                )
-                AppDestinations.REWARDS -> RewardsAndStatsScreen(
-                    state = uiState,
-                    modifier = Modifier.fillMaxSize()
-                )
             }
         }
     }
