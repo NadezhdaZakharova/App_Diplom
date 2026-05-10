@@ -135,7 +135,8 @@
     <string name="trainer_json_hint">После нажатия JSON появится ниже — скопируйте и отправьте ученику.</string>
     <string name="copy_json">Копировать JSON</string>
     <string name="send">Отправить</string>
-    <string name="student_section_self">Самостоятельная</string>
+    <!-- U+2060 (word joiner) перед «я»: в узкой кнопке перенос не рвёт слово перед последней буквой. -->
+    <string name="student_section_self">Самостоятельна\u2060я</string>
     <string name="student_section_trainer">От тренера</string>
     <string name="start_workout">Начать тренировку</string>
     <string name="trainer_import_json_label">JSON тренировки от тренера</string>

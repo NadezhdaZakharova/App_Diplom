@@ -32,7 +32,11 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.Hyphens
+import androidx.compose.ui.text.style.LineBreak
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.diplom.R
@@ -91,7 +95,19 @@ internal fun GreenButton(
             Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
         }
-        Text(text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Text(
+            text = text,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            softWrap = true,
+            style = TextStyle(
+                lineBreak = LineBreak.Heading,
+                hyphens = Hyphens.None
+            )
+        )
     }
 }
 
@@ -117,7 +133,19 @@ internal fun OutlineButton(
             Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
         }
-        Text(text, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+        Text(
+            text = text,
+            fontWeight = FontWeight.Medium,
+            fontSize = 14.sp,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            softWrap = true,
+            style = TextStyle(
+                lineBreak = LineBreak.Heading,
+                hyphens = Hyphens.None
+            )
+        )
     }
 }
 
